@@ -9,78 +9,66 @@ import TaskModal from './components/TaskModal';
 import ProjectModal from './components/ProjectModal';
 import TaskDetailDrawer from './components/TaskDetailDrawer';
 import { Task, Status, Project, User, Activity } from './types';
-import { USERS, TAG_COLORS } from './constants';
+import { TAG_COLORS } from './constants';
+import { getCurrentUser, onAuthStateChange } from './lib/auth';
+import * as db from './lib/db';
 
 const App: React.FC = () => {
   // Application State
   const [activeTab, setActiveTab] = useState('projects');
-  
-  // Persisted State using lazy initialization
-  const [user, setUser] = useState<User>(() => {
-    try {
-        const saved = localStorage.getItem('devtrack_user');
-        return saved ? JSON.parse(saved) : USERS[0];
-    } catch (e) {
-        return USERS[0];
-    }
-  });
-
-  const [projects, setProjects] = useState<Project[]>(() => {
-    try {
-      const saved = localStorage.getItem('devtrack_projects');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Failed to load projects", e);
-      return [];
-    }
-  });
-
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const saved = localStorage.getItem('devtrack_tasks');
-      const loadedTasks = saved ? JSON.parse(saved) : [];
-      
-      // Migration script for old tasks 
-      return loadedTasks.map((t: any) => ({
-          ...t,
-          comments: Array.isArray(t.comments) ? t.comments : [],
-          activity: Array.isArray(t.activity) ? t.activity : [],
-          // Migrate string tags to Tag objects
-          tags: Array.isArray(t.tags) 
-            ? t.tags.map((tag: any) => 
-                typeof tag === 'string' 
-                ? { name: tag, color: TAG_COLORS[4].class } // Default to Gray/Low
-                : tag
-              )
-            : []
-      }));
-    } catch (e) {
-      console.error("Failed to load tasks", e);
-      return [];
-    }
-  });
-
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Modal States
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null); // For Drawer
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [initialStatus, setInitialStatus] = useState<Status>('To Do');
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
-  // Persistence Effects
+  // Initialize user and load data
   useEffect(() => {
-    localStorage.setItem('devtrack_user', JSON.stringify(user));
-  }, [user]);
+    let subscription: any;
 
-  useEffect(() => {
-    localStorage.setItem('devtrack_projects', JSON.stringify(projects));
-  }, [projects]);
+    (async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
 
-  useEffect(() => {
-    localStorage.setItem('devtrack_tasks', JSON.stringify(tasks));
-  }, [tasks]);
+        if (currentUser) {
+          const [projectsData, tasksData] = await Promise.all([
+            db.getProjects(currentUser.id),
+            Promise.resolve([])
+          ]);
+          setProjects(projectsData);
+
+          if (projectsData.length > 0) {
+            const allTasks: Task[] = [];
+            for (const project of projectsData) {
+              const projectTasks = await db.getTasks(project.id);
+              allTasks.push(...projectTasks);
+            }
+            setTasks(allTasks);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    subscription = onAuthStateChange((currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   // Derived State
   const activeProject = useMemo(() => 
@@ -111,11 +99,17 @@ const App: React.FC = () => {
   }, [projects, activeTab]);
 
   // Handlers
-  const handleCreateProject = (project: Project) => {
-    setProjects(prev => [...prev, project]);
-    setActiveProjectId(project.id);
-    setActiveTab('dashboard'); // Auto-navigate to dashboard of new project
-    setSearchQuery('');
+  const handleCreateProject = async (project: Project) => {
+    try {
+      if (!user) return;
+      const created = await db.createProject(project, user.id);
+      setProjects(prev => [...prev, created]);
+      setActiveProjectId(created.id);
+      setActiveTab('dashboard');
+      setSearchQuery('');
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    }
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -129,87 +123,98 @@ const App: React.FC = () => {
   };
 
   const handleClearData = () => {
-      localStorage.clear();
-      window.location.reload();
+      // Clear local state - data remains in Supabase
+      setProjects([]);
+      setTasks([]);
+      setActiveProjectId(null);
   };
 
-  const handleCreateTask = (taskData: Partial<Task>) => {
-    if (!activeProjectId) return;
-    
-    const newTask: Task = {
-        ...taskData,
-        id: `t${Date.now()}`,
-        projectId: activeProjectId,
-        comments: [],
-        activity: [{
+  const handleCreateTask = async (taskData: Partial<Task>) => {
+    if (!activeProjectId || !user) return;
+
+    try {
+      const newTask = await db.createTask(
+        {
+          ...taskData,
+          projectId: activeProjectId,
+          tags: taskData.tags || [],
+          assignees: taskData.assignees || [],
+          comments: [],
+          activity: [],
+        } as Task,
+        user.id
+      );
+
+      setTasks(prev => [...prev, newTask]);
+      setSelectedTask(newTask);
+    } catch (error) {
+      console.error('Failed to create task:', error);
+    }
+  };
+
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
+    try {
+      await db.updateTask(taskId, updates);
+
+      setTasks(prev => prev.map(t => {
+        if (t.id !== taskId) return t;
+
+        const updatedTask = { ...t, ...updates };
+
+        if (updates.status && updates.status !== t.status && user) {
+          db.addActivity(taskId, user.id, `moved task from ${t.status} to ${updates.status}`, 'status');
+          const newActivity: Activity = {
             id: `a${Date.now()}`,
             userId: user.id,
-            description: 'created this task',
-            type: 'create',
+            description: `moved task from ${t.status} to ${updates.status}`,
+            type: 'status',
             createdAt: new Date().toISOString()
-        }],
-    } as Task;
-    
-    setTasks(prev => [...prev, newTask]);
-    // Optionally open the drawer immediately after creating
-    setSelectedTask(newTask);
+          };
+          updatedTask.activity = [...(updatedTask.activity || []), newActivity];
+        }
+
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask(updatedTask);
+        }
+        return updatedTask;
+      }));
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
   };
 
-  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
+  const handleAddComment = async (taskId: string, text: string) => {
+    try {
+      if (!user) return;
+
+      const newComment = await db.addComment(taskId, user.id, text);
+      await db.addActivity(taskId, user.id, 'commented', 'comment');
+
       setTasks(prev => prev.map(t => {
-          if (t.id !== taskId) return t;
-          
-          const updatedTask = { ...t, ...updates };
-          
-          // If status changed, add activity log
-          if (updates.status && updates.status !== t.status) {
-              const newActivity: Activity = {
-                  id: `a${Date.now()}`,
-                  userId: user.id,
-                  description: `moved task from ${t.status} to ${updates.status}`,
-                  type: 'status',
-                  createdAt: new Date().toISOString()
-              };
-              updatedTask.activity = [...(updatedTask.activity || []), newActivity];
-          }
+        if (t.id !== taskId) return t;
 
-          if (selectedTask && selectedTask.id === taskId) {
-              setSelectedTask(updatedTask);
-          }
-          return updatedTask;
+        const newActivity: Activity = {
+          id: `a${Date.now()}`,
+          userId: user.id,
+          description: 'commented',
+          type: 'comment',
+          createdAt: new Date().toISOString()
+        };
+
+        const updatedTask = {
+          ...t,
+          comments: [...(t.comments || []), newComment],
+          activity: [...(t.activity || []), newActivity]
+        };
+
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask(updatedTask);
+        }
+        return updatedTask;
       }));
-  };
-
-  const handleAddComment = (taskId: string, text: string) => {
-      setTasks(prev => prev.map(t => {
-          if (t.id !== taskId) return t;
-          
-          const newComment = {
-              id: `c${Date.now()}`,
-              userId: user.id,
-              text,
-              createdAt: new Date().toISOString()
-          };
-
-          const newActivity: Activity = {
-              id: `a${Date.now()}`,
-              userId: user.id,
-              description: `commented`,
-              type: 'comment',
-              createdAt: new Date().toISOString()
-          };
-
-          const updatedTask = { 
-              ...t, 
-              comments: [...(t.comments || []), newComment],
-              activity: [...(t.activity || []), newActivity]
-          };
-
-          if (selectedTask && selectedTask.id === taskId) {
-              setSelectedTask(updatedTask);
-          }
-          return updatedTask;
-      }));
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+    }
   };
 
   const handleMoveTask = (taskId: string, newStatus: Status) => {
@@ -235,14 +240,30 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-gray-500">
+          <p>Loading...</p>
+        </div>
+      );
+    }
+
+    if (!user) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-gray-500">
+          <p>Please sign in to continue.</p>
+        </div>
+      );
+    }
+
     if (activeTab === 'settings') {
         return <Settings user={user} onUpdateUser={handleUpdateUser} onClearData={handleClearData} />;
     }
 
     if (activeTab === 'projects') {
         return (
-            <Projects 
-                projects={projects} 
+            <Projects
+                projects={projects}
                 tasks={tasks}
                 onSelectProject={handleSelectProject}
                 onOpenCreateModal={() => setIsProjectModalOpen(true)}
