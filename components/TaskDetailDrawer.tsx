@@ -5,7 +5,7 @@ import {
     Send, MessageSquare, CheckSquare, Trash2,
     AlertCircle, ChevronRight, MoreHorizontal,
     PlayCircle, Hourglass, CalendarDays, Plus,
-    Percent
+    Percent, Check
 } from 'lucide-react';
 import { Task, User, Subtask, Status, Priority } from '../types';
 import { TAG_COLORS } from '../constants';
@@ -15,6 +15,7 @@ interface TaskDetailDrawerProps {
     onClose: () => void;
     task: Task | null;
     currentUser: User;
+    allUsers: User[];
     onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
     onAddComment: (taskId: string, text: string) => void;
     onDeleteTask: (taskId: string) => void;
@@ -25,6 +26,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     onClose,
     task,
     currentUser,
+    allUsers = [],
     onUpdateTask,
     onAddComment,
     onDeleteTask
@@ -66,8 +68,24 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     const subtaskInputRef = useRef<HTMLInputElement>(null);
     const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
+    const [isAssigneeMenuOpen, setIsAssigneeMenuOpen] = useState(false);
     const commentsEndRef = useRef<HTMLDivElement>(null);
     const tagInputRef = useRef<HTMLInputElement>(null);
+
+    const toggleAssignee = (userToToggle: User) => {
+        if (!task) return;
+
+        const isAssigned = task.assignees.some(u => u.id === userToToggle.id);
+        let newAssignees;
+
+        if (isAssigned) {
+            newAssignees = task.assignees.filter(u => u.id !== userToToggle.id);
+        } else {
+            newAssignees = [...task.assignees, userToToggle];
+        }
+
+        onUpdateTask(task.id, { assignees: newAssignees });
+    };
 
     useEffect(() => {
         if (task) {
@@ -354,13 +372,13 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             </div>
 
                             <div className="space-y-1 mb-3">
-                                {task.subtasks?.map(st => (
+                                {(task.subtasks || []).map(st => (
                                     <div key={st.id} className="group flex items-center gap-3 p-2 hover:bg-surface-highlight rounded-lg transition-colors">
                                         <button
                                             onClick={() => toggleSubtask(st.id)}
-                                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${st.completed ? 'bg-primary border-primary text-black' : 'border-gray-600 hover:border-primary'}`}
+                                            className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform active:scale-75 ${st.completed ? 'bg-primary border-primary text-black scale-100' : 'border-gray-500 hover:border-primary bg-transparent text-transparent hover:scale-110'}`}
                                         >
-                                            {st.completed && <CheckSquare size={10} />}
+                                            <Check size={12} strokeWidth={4} className={`transition-all duration-300 ${st.completed ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
                                         </button>
                                         <span className={`text-sm flex-1 truncate transition-all ${st.completed ? 'line-through text-gray-600' : 'text-gray-300'}`}>
                                             {st.title}
@@ -559,14 +577,54 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                 </select>
                             </div>
 
-                            <div className="group">
+                            <div className="group relative">
                                 <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500 mb-2">
-                                    <UserIcon size={14} /> Assignee
+                                    <UserIcon size={14} /> Assignees
                                 </label>
-                                <div className="flex items-center gap-2 p-2 bg-background/50 rounded-lg border border-border">
-                                    <img src={task.assignees[0]?.avatar} className="w-6 h-6 rounded-full" />
-                                    <span className="text-sm text-gray-300">{task.assignees[0]?.name}</span>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {(task.assignees || []).map((assignee, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-surface p-1 pr-3 rounded-full border border-border">
+                                            <img
+                                                src={assignee.avatar}
+                                                alt={assignee.name}
+                                                className="w-6 h-6 rounded-full bg-background object-cover"
+                                            />
+                                            <span className="text-xs font-bold text-gray-300">{assignee.name}</span>
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        onClick={() => setIsAssigneeMenuOpen(!isAssigneeMenuOpen)}
+                                        className="w-8 h-8 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-400 hover:bg-surface-highlight transition-all"
+                                    >
+                                        <Plus size={14} />
+                                    </button>
                                 </div>
+
+                                {/* Custom Assignee Dropdown */}
+                                {isAssigneeMenuOpen && (
+                                    <div className="absolute top-full left-0 mt-2 w-56 bg-[#1C1C1E] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-pop-in">
+                                        <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
+                                            {allUsers.map(userItem => {
+                                                const isSelected = (task.assignees || []).some(u => u.id === userItem.id);
+                                                return (
+                                                    <button
+                                                        key={userItem.id}
+                                                        onClick={() => toggleAssignee(userItem)}
+                                                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                                                    >
+                                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform ${isSelected ? 'border-primary bg-primary text-black scale-100' : 'border-gray-500 hover:border-primary bg-transparent text-transparent hover:scale-110'}`}>
+                                                            <Check size={12} strokeWidth={4} className={`transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
+                                                        </div>
+                                                        <img src={userItem.avatar} className="w-6 h-6 rounded-full object-cover" />
+                                                        <span className="truncate">{userItem.name}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -631,7 +689,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                {task.tags.map((tag, i) => (
+                                {(task.tags || []).map((tag, i) => (
                                     <span key={i} className={`text-xs px-2 py-1 rounded border flex items-center gap-1 group/tag cursor-default ${tag.color}`}>
                                         {tag.name}
                                         <button onClick={() => handleRemoveTag(i)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity">
