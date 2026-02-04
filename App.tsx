@@ -764,6 +764,7 @@ const App: React.FC = () => {
         onClose={() => setIsTaskModalOpen(false)}
         onSubmit={handleCreateTask}
         initialStatus={initialStatus}
+        availableUsers={activeProjectId ? (projectMembers[activeProjectId] || [user]) : [user]}
       />
 
       <ProjectModal

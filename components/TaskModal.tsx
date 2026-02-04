@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Tag, User as UserIcon, PlayCircle, Hourglass, CalendarDays } from 'lucide-react';
-import { Task, Priority, Status } from '../types';
-import { USERS, TAG_COLORS } from '../constants';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Calendar, Clock, Tag, User as UserIcon, PlayCircle, Hourglass, CalendarDays, Plus, Check } from 'lucide-react';
+import { Task, Priority, Status, User } from '../types';
+import { TAG_COLORS } from '../constants';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -10,9 +10,10 @@ interface TaskModalProps {
   onSubmit: (task: Partial<Task>) => void;
   initialData?: Task | null;
   initialStatus?: Status;
+  availableUsers?: User[];
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, initialData, initialStatus }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, initialData, initialStatus, availableUsers = [] }) => {
   const [formData, setFormData] = useState<Partial<Task>>({
     title: '',
     description: '',
@@ -27,6 +28,21 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, initia
   });
 
   const [tagInput, setTagInput] = useState('');
+  const [isAssigneeMenuOpen, setIsAssigneeMenuOpen] = useState(false);
+  const assigneeMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target as Node)) {
+        setIsAssigneeMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Helper to safely parse YYYY-MM-DD to Date object without TZ issues
   const parseDateString = (dateStr: string) => {
@@ -73,8 +89,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, initia
           activity: []
         });
       }
-      setTagInput('');
     }
+    setIsAssigneeMenuOpen(false); // Reset menu state
   }, [isOpen, initialData, initialStatus]);
 
   if (!isOpen) return null;
@@ -276,18 +292,70 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSubmit, initia
               </div>
               <div className="group">
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5 group-focus-within:text-primary transition-colors">Assignee</label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors" size={16} />
-                  <select
-                    className="w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary appearance-none cursor-pointer transition-all duration-300"
-                    onChange={(e) => {
-                      const user = USERS.find(u => u.id === e.target.value);
-                      if (user) setFormData({ ...formData, assignees: [user] });
-                    }}
-                    value={formData.assignees?.[0]?.id}
+                <div className="relative" ref={assigneeMenuRef}>
+
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors pointer-events-none" size={16} />
+
+                  <div
+                    className="w-full bg-background/50 border border-border rounded-xl px-4 py-2 min-h-[48px] flex items-center pl-10 cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => setIsAssigneeMenuOpen(!isAssigneeMenuOpen)}
                   >
-                    {USERS.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.assignees?.map((assignee, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-surface p-1 pr-3 rounded-full border border-border">
+                          <img
+                            src={assignee.avatar}
+                            alt={assignee.name}
+                            className="w-5 h-5 rounded-full bg-background object-cover"
+                          />
+                          <span className="text-xs font-bold text-gray-300">{assignee.name}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFormData({ ...formData, assignees: formData.assignees?.filter(u => u.id !== assignee.id) });
+                            }}
+                            className="ml-1 hover:text-red-500"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {isAssigneeMenuOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-full bg-[#1C1C1E] border border-white/10 rounded-xl shadow-2xl z-[60] overflow-hidden animate-pop-in">
+                      <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
+                        {availableUsers.map(userItem => {
+                          const isSelected = (formData.assignees || []).some(u => u.id === userItem.id);
+                          return (
+                            <button
+                              type="button"
+                              key={userItem.id}
+                              onClick={() => {
+                                const current = formData.assignees || [];
+                                const isAlreadySelected = current.some(u => u.id === userItem.id);
+                                setFormData({
+                                  ...formData,
+                                  assignees: isAlreadySelected
+                                    ? current.filter(u => u.id !== userItem.id)
+                                    : [...current, userItem]
+                                });
+                              }}
+                              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                            >
+                              <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform ${isSelected ? 'border-primary bg-primary text-black scale-100' : 'border-gray-500 hover:border-primary bg-transparent text-transparent hover:scale-110'}`}>
+                                <Check size={12} strokeWidth={4} className={`transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
+                              </div>
+                              <img src={userItem.avatar} className="w-6 h-6 rounded-full object-cover" />
+                              <span className="truncate">{userItem.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -68,7 +68,28 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     const subtaskInputRef = useRef<HTMLInputElement>(null);
     const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
+
+
+    // Assignee Dropdown Ref
     const [isAssigneeMenuOpen, setIsAssigneeMenuOpen] = useState(false);
+    const assigneeMenuRef = useRef<HTMLDivElement>(null);
+
+    // Close on Click Outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target as Node)) {
+                setIsAssigneeMenuOpen(false);
+            }
+        };
+
+        if (isAssigneeMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isAssigneeMenuOpen]);
+
     const commentsEndRef = useRef<HTMLDivElement>(null);
     const tagInputRef = useRef<HTMLInputElement>(null);
 
@@ -577,12 +598,15 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                 </select>
                             </div>
 
-                            <div className="group relative">
+                            <div className="group relative" ref={assigneeMenuRef}>
                                 <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500 mb-2">
                                     <UserIcon size={14} /> Assignees
                                 </label>
 
-                                <div className="flex flex-wrap items-center gap-2">
+                                <div
+                                    className="flex flex-wrap items-center gap-2 cursor-pointer min-h-[32px]"
+                                    onClick={() => setIsAssigneeMenuOpen(!isAssigneeMenuOpen)}
+                                >
                                     {(task.assignees || []).map((assignee, idx) => (
                                         <div key={idx} className="flex items-center gap-2 bg-surface p-1 pr-3 rounded-full border border-border">
                                             <img
@@ -593,13 +617,16 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                             <span className="text-xs font-bold text-gray-300">{assignee.name}</span>
                                         </div>
                                     ))}
-
-                                    <button
-                                        onClick={() => setIsAssigneeMenuOpen(!isAssigneeMenuOpen)}
-                                        className="w-8 h-8 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-400 hover:bg-surface-highlight transition-all"
-                                    >
-                                        <Plus size={14} />
-                                    </button>
+                                    {(task.assignees || []).length === 0 && (
+                                        <div className="w-6 h-6 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-500">
+                                            <Plus size={12} />
+                                        </div>
+                                    )}
+                                    {(task.assignees || []).length > 0 && (
+                                        <div className="w-6 h-6 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-500 hover:text-white hover:border-white transition-colors">
+                                            <Plus size={12} />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Custom Assignee Dropdown */}
