@@ -13,7 +13,8 @@ import {
   Share2,
   CheckCircle2,
   Bug,
-  Activity
+  Activity,
+  Flame
 } from 'lucide-react';
 import { Task, Project } from '../types';
 
@@ -57,9 +58,9 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project }) => {
     // Status Distribution Data for Chart
     const statusData = [
         { label: 'To Do', count: todo, color: 'bg-zinc-600', textColor: 'text-zinc-400' },
-        { label: 'In Progress', count: inProgress, color: 'bg-primary', textColor: 'text-primary' },
+        { label: 'In Progress', count: inProgress, color: 'bg-blue-500', textColor: 'text-blue-500' },
         { label: 'Testing', count: testing, color: 'bg-secondary', textColor: 'text-secondary' },
-        { label: 'Done', count: done, color: 'bg-emerald-500', textColor: 'text-emerald-500' }
+        { label: 'Done', count: done, color: 'bg-primary', textColor: 'text-primary' }
     ];
     
     const maxStatusCount = Math.max(...statusData.map(d => d.count), 1); // Avoid div by zero
@@ -75,6 +76,40 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project }) => {
         maxStatusCount
     };
   }, [tasks, project]);
+
+  // Heatmap Data Calculation
+  const heatmapData = useMemo(() => {
+      // Generate last 365 days
+      const days = [];
+      const today = new Date();
+      const oneYearAgo = new Date();
+      oneYearAgo.setDate(today.getDate() - 364);
+
+      // Map of date string YYYY-MM-DD to count
+      const activityMap = new Map<string, number>();
+      
+      tasks.forEach(task => {
+          if (task.completedAt) {
+              const dateStr = task.completedAt.split('T')[0];
+              activityMap.set(dateStr, (activityMap.get(dateStr) || 0) + 1);
+          }
+      });
+
+      // Populate grid
+      for (let i = 0; i < 365; i++) {
+          const d = new Date(oneYearAgo);
+          d.setDate(oneYearAgo.getDate() + i);
+          const dateStr = d.toISOString().split('T')[0];
+          const count = activityMap.get(dateStr) || 0;
+          
+          days.push({
+              date: d,
+              count,
+              level: count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : 3
+          });
+      }
+      return days;
+  }, [tasks]);
 
   const getTaskIcon = (title: string) => {
       const t = title.toLowerCase();
@@ -93,6 +128,16 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project }) => {
           'bg-white text-black border border-gray-200' 
       ];
       return colors[index % colors.length];
+  };
+
+  const getHeatmapColor = (level: number) => {
+      switch(level) {
+          case 0: return 'bg-[#1C1C1E]'; // Empty
+          case 1: return 'bg-[#D1F45F]/30'; // Low
+          case 2: return 'bg-[#D1F45F]/60'; // Medium
+          case 3: return 'bg-[#D1F45F] shadow-[0_0_8px_rgba(209,244,95,0.6)]'; // High
+          default: return 'bg-[#1C1C1E]';
+      }
   };
 
   return (
@@ -120,7 +165,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project }) => {
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            {/* Card 1: Project Velocity (Real Data) */}
+            {/* Card 1: Project Velocity */}
             <div className="col-span-1 lg:col-span-4 bg-[#161616] rounded-3xl p-6 shadow-xl flex flex-col justify-between min-h-[280px] relative overflow-hidden animate-slide-up delay-100 hover:shadow-2xl transition-all duration-500 group">
                 <div className="flex justify-between items-start mb-4 relative z-10">
                     <h2 className="text-sm font-bold text-gray-400 tracking-wider uppercase">Project Velocity</h2>
@@ -309,6 +354,50 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project }) => {
                 <button className="px-4 py-2 bg-white text-black text-xs font-bold rounded-full hover:scale-105 transition-transform">
                     Learn Methodology
                 </button>
+            </div>
+
+            {/* HEATMAP SECTION (Moved to Bottom) */}
+            <div className="col-span-1 lg:col-span-12 bg-[#161616] rounded-3xl p-6 shadow-xl animate-slide-up delay-75 border border-white/5">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-2">
+                        <Flame size={18} className="text-primary" />
+                        <h2 className="text-sm font-bold text-gray-200 tracking-wider uppercase">Contribution Graph</h2>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                        <span>Less</span>
+                        <div className="w-3 h-3 rounded-sm bg-[#1C1C1E]"></div>
+                        <div className="w-3 h-3 rounded-sm bg-[#D1F45F]/30"></div>
+                        <div className="w-3 h-3 rounded-sm bg-[#D1F45F]/60"></div>
+                        <div className="w-3 h-3 rounded-sm bg-[#D1F45F]"></div>
+                        <span>More</span>
+                    </div>
+                </div>
+                
+                <div className="overflow-x-auto pb-8 custom-scrollbar">
+                    <div className="min-w-[800px] flex gap-1">
+                        {/* We need to group by week for the standard heatmap layout */}
+                        {Array.from({ length: 53 }).map((_, weekIndex) => (
+                            <div key={weekIndex} className="flex flex-col gap-1">
+                                {Array.from({ length: 7 }).map((_, dayIndex) => {
+                                    const dayData = heatmapData[weekIndex * 7 + dayIndex];
+                                    if (!dayData) return null;
+                                    
+                                    return (
+                                        <div 
+                                            key={dayIndex} 
+                                            className={`w-3 h-3 rounded-sm ${getHeatmapColor(dayData.level)} transition-all hover:scale-150 hover:z-10 relative group`}
+                                        >
+                                            {/* Tooltip */}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 shadow-lg border border-white/10">
+                                                <span className="font-bold text-primary">{dayData.count} tasks</span> on {dayData.date.toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
         </div>

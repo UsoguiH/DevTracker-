@@ -29,6 +29,12 @@ export interface Tag {
   color: string; // Tailwind class string
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -43,7 +49,19 @@ export interface Task {
   activity: Activity[];
   projectId: string; // Link to specific project
   startDate?: string;
+  endDate?: string;
   durationDays?: number;
+  subtasks?: Subtask[];
+  sprintId?: string;
+  progress?: number; // 0 to 100
+  completedAt?: string; // ISO String for heatmap
+}
+
+export interface ProjectResource {
+    palette: { name: string; value: string }[];
+    links: { label: string; url: string }[];
+    commands: { label: string; command: string }[];
+    stack: string[];
 }
 
 export interface Project {
@@ -52,4 +70,5 @@ export interface Project {
   description: string;
   key: string; // e.g., 'DT' for DevTrack
   createdAt: string;
+  resources?: ProjectResource; // The HUD Data
 }

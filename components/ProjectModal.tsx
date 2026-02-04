@@ -1,34 +1,50 @@
-import React, { useState } from 'react';
-import { X, FolderPlus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, FolderPlus, FolderPen } from 'lucide-react';
 import { Project } from '../types';
 
 interface ProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (project: Project) => void;
+  initialData?: Project | null;
 }
 
-const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     key: ''
   });
 
+  useEffect(() => {
+    if (isOpen) {
+        if (initialData) {
+            setFormData({
+                name: initialData.name,
+                description: initialData.description,
+                key: initialData.key
+            });
+        } else {
+            setFormData({ name: '', description: '', key: '' });
+        }
+    }
+  }, [isOpen, initialData]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newProject: Project = {
-      id: `p${Date.now()}`,
+    
+    const project: Project = {
+      id: initialData ? initialData.id : `p${Date.now()}`,
       name: formData.name,
       description: formData.description,
       key: formData.key.toUpperCase() || formData.name.substring(0, 2).toUpperCase(),
-      createdAt: new Date().toISOString()
+      createdAt: initialData ? initialData.createdAt : new Date().toISOString()
     };
-    onSubmit(newProject);
+    
+    onSubmit(project);
     setFormData({ name: '', description: '', key: '' });
-    onClose();
   };
 
   return (
@@ -36,8 +52,12 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSubmit }
       <div className="bg-surface border border-border w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-pop-in transform transition-all">
         <div className="flex justify-between items-center p-6 border-b border-border bg-surface-highlight/20 backdrop-blur-xl">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <FolderPlus size={24} className="text-primary" />
-            Create Project
+            {initialData ? (
+                <FolderPen size={24} className="text-primary" />
+            ) : (
+                <FolderPlus size={24} className="text-primary" />
+            )}
+            {initialData ? 'Edit Project' : 'Create Project'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors hover:scale-110 duration-200">
             <X size={24} />
@@ -55,7 +75,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSubmit }
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300"
                 placeholder="e.g. Portfolio Website"
-                autoFocus
+                autoFocus={!initialData}
               />
             </div>
 
@@ -96,7 +116,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, onSubmit }
               type="submit"
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-black hover:bg-primary/90 hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(209,244,95,0.3)]"
             >
-              Create Project
+              {initialData ? 'Save Changes' : 'Create Project'}
             </button>
           </div>
         </form>

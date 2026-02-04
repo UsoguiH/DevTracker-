@@ -27,6 +27,8 @@
               'slide-up': 'slideUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) forwards',
               'pop-in': 'popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               'slide-in-right': 'slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'water-flow': 'waterFlow 3s ease-in-out infinite',
+              'shimmer': 'shimmer 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             }
           },
         },
@@ -73,6 +75,17 @@
         to { opacity: 1; transform: translateX(0); }
       }
 
+      @keyframes waterFlow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      @keyframes shimmer {
+        0% { transform: translateX(-150%) skewX(-20deg); }
+        100% { transform: translateX(200%) skewX(-20deg); }
+      }
+
       /* Utility classes for delays */
       .delay-100 { animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards; }
       .delay-200 { animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards; }
@@ -103,7 +116,8 @@
     "react-dom/": "https://esm.sh/react-dom@18.3.1/",
     "lucide-react": "https://esm.sh/lucide-react@0.344.0",
     "recharts": "https://esm.sh/recharts@2.12.2",
-    "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom"
+    "@hello-pangea/dnd": "https://esm.sh/@hello-pangea/dnd@16.6.0?external=react,react-dom",
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0"
   }
 }
 </script>

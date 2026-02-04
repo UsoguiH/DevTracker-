@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   KanbanSquare, 
@@ -7,10 +8,12 @@ import {
   Search, 
   Bell, 
   Plus,
-  FolderOpen
+  FolderOpen,
+  Zap,
+  PanelRight
 } from 'lucide-react';
-import { User } from '../types';
-import { Project } from '../types';
+import { User, Project } from '../types';
+import ProjectHUD from './ProjectHUD';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,7 +22,9 @@ interface LayoutProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onAddTask: () => void;
+  onOpenFocusMode: () => void;
   activeProject: Project | null;
+  onUpdateProject?: (projectId: string, updates: Partial<Project>) => void;
   user: User;
 }
 
@@ -30,11 +35,14 @@ const Layout: React.FC<LayoutProps> = ({
   searchQuery, 
   setSearchQuery,
   onAddTask,
+  onOpenFocusMode,
   activeProject,
+  onUpdateProject,
   user
 }) => {
+  const [isHUDOpen, setIsHUDOpen] = useState(false);
   
-  const NavItem = ({ id, icon: Icon, label, disabled = false, onClick }: { id?: string; icon: any; label: string; disabled?: boolean; onClick?: () => void }) => {
+  const NavItem = ({ id, icon: Icon, label, disabled = false, onClick, special = false }: { id?: string; icon: any; label: string; disabled?: boolean; onClick?: () => void; special?: boolean }) => {
     const isActive = activeTab === id;
     
     return (
@@ -48,13 +56,14 @@ const Layout: React.FC<LayoutProps> = ({
         }}
         disabled={disabled}
         className={`group relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] mb-4
-          ${isActive 
+          ${special ? 'bg-white text-black hover:scale-110 shadow-[0_0_20px_rgba(255,255,255,0.3)]' : ''}
+          ${!special && isActive 
             ? 'bg-primary text-black shadow-[0_0_25px_rgba(209,244,95,0.4)] scale-110' 
-            : disabled 
+            : !special && disabled 
               ? 'text-gray-700 cursor-not-allowed' 
-              : 'text-gray-400 hover:text-white hover:bg-white/10 hover:scale-105'}`}
+              : !special && 'text-gray-400 hover:text-white hover:bg-white/10 hover:scale-105'}`}
       >
-        <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+        <Icon size={24} strokeWidth={isActive || special ? 2.5 : 2} />
         
         {/* Tooltip */}
         {!disabled && (
@@ -79,6 +88,10 @@ const Layout: React.FC<LayoutProps> = ({
            <NavItem id="dashboard" icon={LayoutDashboard} label="Dashboard" disabled={!activeProject} />
            <NavItem id="kanban" icon={KanbanSquare} label="Kanban Board" disabled={!activeProject} />
            <NavItem id="timeline" icon={CalendarDays} label="Timeline" disabled={!activeProject} />
+           
+           <div className="mt-4">
+               <NavItem icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} special={true} />
+           </div>
         </div>
 
         {/* Bottom Actions */}
@@ -127,6 +140,17 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               )}
 
+              {/* HUD Toggle */}
+              {activeProject && (
+                  <button 
+                    onClick={() => setIsHUDOpen(!isHUDOpen)}
+                    className={`p-2 rounded-full transition-all duration-300 ${isHUDOpen ? 'bg-surface-highlight text-primary shadow-[0_0_15px_rgba(209,244,95,0.2)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                    title="Toggle Project Resources"
+                  >
+                    <PanelRight size={20} />
+                  </button>
+              )}
+
               <button className="relative text-gray-400 hover:text-white transition-colors duration-300 hover:scale-110">
                 <Bell size={20} />
                 <span className="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full shadow-[0_0_10px_rgba(255,159,69,0.8)]"></span>
@@ -152,8 +176,18 @@ const Layout: React.FC<LayoutProps> = ({
                 style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
            </div>
            
-           {/* Content with Page Transition */}
-           <div key={activeTab} className="relative z-10 max-w-full h-full animate-fade-in">
+           {/* HUD Component */}
+           {activeProject && onUpdateProject && (
+               <ProjectHUD 
+                  isOpen={isHUDOpen} 
+                  onClose={() => setIsHUDOpen(false)} 
+                  project={activeProject}
+                  onUpdateProject={onUpdateProject}
+               />
+           )}
+           
+           {/* Content Wrapper */}
+           <div key={activeTab} className="relative z-10 max-w-full h-full">
                 {children}
            </div>
         </div>
