@@ -29,7 +29,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
         onUpdateUser(formData);
         setIsDirty(false);
         setShowSaved(true);
-        
+
         // Hide "Saved" message after 3 seconds
         setTimeout(() => setShowSaved(false), 3000);
     };
@@ -57,9 +57,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                             {/* Avatar Preview */}
                             <div className="flex flex-col items-center gap-4">
                                 <div className="relative group">
-                                    <img 
-                                        src={formData.avatar} 
-                                        alt="Avatar" 
+                                    <img
+                                        src={formData.avatar}
+                                        alt="Avatar"
                                         className="w-32 h-32 rounded-full border-4 border-surface-highlight object-cover shadow-2xl transition-transform duration-500 group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-not-allowed">
@@ -92,7 +92,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                                         />
                                     </div>
                                 </div>
-                                
+
                                 <div className="group">
                                     <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5 group-focus-within:text-primary transition-colors">Avatar URL</label>
                                     <input
@@ -108,12 +108,12 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                         </div>
 
                         <div className="flex justify-end pt-4 border-t border-border">
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={!isDirty}
                                 className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300
-                                    ${isDirty 
-                                        ? 'bg-primary text-black hover:scale-105 shadow-[0_0_15px_rgba(209,244,95,0.3)]' 
+                                    ${isDirty
+                                        ? 'bg-primary text-black hover:scale-105 shadow-[0_0_15px_rgba(209,244,95,0.3)]'
                                         : 'bg-surface-highlight text-gray-500 cursor-not-allowed'}`}
                             >
                                 <Save size={18} />
@@ -125,14 +125,14 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
 
                 {/* Notifications & Preferences Mockup */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-200">
+                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-200">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="p-3 bg-surface-highlight rounded-xl text-secondary">
                                 <Bell size={24} />
                             </div>
                             <h2 className="text-lg font-bold text-white">Notifications</h2>
                         </div>
-                        
+
                         <div className="space-y-4">
                             <div className="flex items-center justify-between p-4 bg-background/30 rounded-xl border border-border/50">
                                 <div className="flex items-center gap-3">
@@ -143,7 +143,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                                     <div className="absolute right-1 top-1 w-4 h-4 bg-black rounded-full shadow-sm"></div>
                                 </div>
                             </div>
-                             <div className="flex items-center justify-between p-4 bg-background/30 rounded-xl border border-border/50">
+                            <div className="flex items-center justify-between p-4 bg-background/30 rounded-xl border border-border/50">
                                 <div className="flex items-center gap-3">
                                     <Smartphone size={18} className="text-gray-400" />
                                     <span className="text-sm font-medium text-gray-200">Push Notifications</span>
@@ -153,9 +153,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                                 </div>
                             </div>
                         </div>
-                     </div>
+                    </div>
 
-                     <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-300">
+                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-300">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="p-3 bg-surface-highlight rounded-xl text-white">
                                 <Shield size={24} />
@@ -169,36 +169,32 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                             Local Storage: Connected
                         </div>
-                     </div>
+                    </div>
                 </div>
 
-                {/* Danger Zone */}
-                <div className="bg-[#1a0505] border border-red-900/50 rounded-3xl p-8 shadow-lg animate-slide-up delay-400">
-                     <div className="flex items-center gap-4 mb-6">
-                        <div className="p-3 bg-red-900/20 rounded-xl text-red-500">
-                            <Trash2 size={24} />
+                {/* Account Actions */}
+                <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-400">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 bg-red-500/10 rounded-xl text-red-500">
+                            <LogOut size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-red-500">Danger Zone</h2>
-                            <p className="text-sm text-red-400/70">Irreversible actions regarding your data.</p>
+                            <h2 className="text-xl font-bold text-white">Session</h2>
+                            <p className="text-sm text-gray-400">Manage your active session.</p>
                         </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 bg-red-950/10 border border-red-900/30 rounded-2xl">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 bg-red-500/5 border border-red-500/10 rounded-2xl">
                         <div>
-                            <h3 className="font-bold text-white mb-1">Delete all application data</h3>
-                            <p className="text-sm text-gray-400">This will remove all projects, tasks, and reset your profile settings.</p>
+                            <h3 className="font-bold text-white mb-1">Sign Out</h3>
+                            <p className="text-sm text-gray-400">Securely log out of your account. Your data is saved in the cloud.</p>
                         </div>
-                        <button 
-                            onClick={() => {
-                                if(window.confirm("Are you absolutely sure? This will wipe all your projects and tasks.")) {
-                                    onClearData();
-                                }
-                            }}
-                            className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-sm transition-all hover:scale-105 shadow-lg shadow-red-900/20 whitespace-nowrap"
+                        <button
+                            onClick={onClearData}
+                            className="flex items-center gap-2 px-6 py-3 bg-surface-highlight hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold text-sm transition-all hover:scale-105 shadow-lg"
                         >
                             <LogOut size={18} />
-                            Reset App Data
+                            Log Out
                         </button>
                     </div>
                 </div>
