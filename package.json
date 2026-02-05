@@ -11,11 +11,18 @@
   "dependencies": {
     "@google/genai": "^1.39.0",
     "@hello-pangea/dnd": "16.6.0",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.94.0",
-    "lucide-react": "0.344.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.344.0",
     "react": "18.3.1",
+    "react-day-picker": "^9.13.0",
     "react-dom": "18.3.1",
-    "recharts": "2.12.2"
+    "recharts": "2.12.2",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
