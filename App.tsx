@@ -14,10 +14,13 @@ import TaskDetailDrawer from './components/TaskDetailDrawer';
 import SprintHistoryModal from './components/SprintHistoryModal';
 import FocusMode from './components/FocusMode';
 import InviteMemberModal from './components/InviteMemberModal';
-import { Task, Status, Project, User, Activity } from './types';
+import { Task, Status, Project, User, Activity, AIAction } from './types';
+import { AIAssistantDrawer } from './components/AIAssistantDrawer';
+import { processUserMessage as processUserMessageReal } from './lib/aiService';
+import { processUserMessage as processUserMessageMock } from './lib/mockAIService';
 import { USERS, TAG_COLORS } from './constants';
 import { Session } from '@supabase/supabase-js';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -126,6 +129,10 @@ const App: React.FC = () => {
   // Focus Mode State
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
 
+  // AI Assistant State
+  const [isAIDrawerOpen, setIsAIDrawerOpen] = useState(false);
+  const [aiFilter, setAiFilter] = useState<{ priority?: string } | null>(null);
+
 
 
   // --- Derived State ---
@@ -142,14 +149,28 @@ const App: React.FC = () => {
     [tasks, activeProjectId]);
 
   const filteredTasks = useMemo(() => {
-    if (!searchQuery) return projectTasks;
-    const lowerQuery = searchQuery.toLowerCase();
-    return projectTasks.filter(t =>
-      t.title.toLowerCase().includes(lowerQuery) ||
-      t.description.toLowerCase().includes(lowerQuery) ||
-      t.tags.some(tag => tag.name.toLowerCase().includes(lowerQuery))
-    );
-  }, [projectTasks, searchQuery]);
+    let filtered = projectTasks;
+
+    // 1. Search Filter
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(t =>
+        t.title.toLowerCase().includes(lowerQuery) ||
+        t.description.toLowerCase().includes(lowerQuery) ||
+        t.tags.some(tag => tag.name.toLowerCase().includes(lowerQuery))
+      );
+    }
+
+    // 2. AI Filter
+    if (aiFilter) {
+      if (aiFilter.priority) {
+        filtered = filtered.filter(t => t.priority === aiFilter.priority);
+      }
+    }
+
+    return filtered;
+  }, [projectTasks, searchQuery, aiFilter]);
+
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
@@ -608,6 +629,43 @@ const App: React.FC = () => {
   };
 
 
+  const handleAIAction = (action: AIAction) => {
+    console.log("AI Action:", action);
+
+    // 1. Batch Task Creation (New Intent)
+    if (action.intent === 'CREATE_TASKS' && action.payload && action.payload.tasks) {
+      action.payload.tasks.forEach((taskPayload: any, index: number) => {
+        const payload = { ...taskPayload };
+        if (!payload.tags) payload.tags = [];
+        payload.tags.push({ name: 'AI Generated', color: 'bg-violet-500/20 text-violet-400 border-violet-500/50' });
+
+        // Staggered delay to prevent race conditions
+        setTimeout(() => handleCreateTask(payload), index * 100);
+      });
+    }
+
+    // 2. Single Task Creation (Legacy Intent Fallback)
+    // Sometimes AI returns singular 'CREATE_TASK' if prompt isn't followed perfectly
+    if (action.intent === 'CREATE_TASKS' && action.payload && !action.payload.tasks) {
+      // It might be a single payload at root
+      const payload = { ...action.payload };
+      if (payload.title) {
+        if (!payload.tags) payload.tags = [];
+        payload.tags.push({ name: 'AI Generated', color: 'bg-violet-500/20 text-violet-400 border-violet-500/50' });
+        handleCreateTask(payload);
+      }
+    }
+
+    if (action.intent === 'FILTER_VIEW' && action.payload && action.payload.filter) {
+      setAiFilter(action.payload.filter);
+      setActiveTab('dashboard');
+    }
+
+    if (action.intent === 'FILTER_VIEW' && !action.payload) {
+      setAiFilter(null); // Clear filter
+    }
+  };
+
   const openNewTaskModal = (status: Status = 'To Do') => {
     if (!activeProjectId) {
       alert("Please select or create a project first!");
@@ -757,6 +815,19 @@ const App: React.FC = () => {
         onOpenFocusMode={() => setIsFocusModeOpen(true)}
       >
         {renderContent()}
+
+        {/* Floating AI Button */}
+        {activeProject && (
+          <button
+            onClick={() => setIsAIDrawerOpen(true)}
+            className="fixed bottom-6 right-6 p-4 bg-gradient-to-br from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-full shadow-lg shadow-violet-500/25 text-white transition-all hover:scale-110 z-50 group"
+          >
+            <Bot size={24} className="group-hover:animate-bounce" />
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-zinc-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+              Ask AI Architect
+            </span>
+          </button>
+        )}
       </Layout>
 
       <TaskModal
@@ -796,6 +867,13 @@ const App: React.FC = () => {
         onClose={() => setIsFocusModeOpen(false)}
         tasks={projectTasks}
         onUpdateTask={handleUpdateTask}
+      />
+
+      <AIAssistantDrawer
+        isOpen={isAIDrawerOpen}
+        onClose={() => setIsAIDrawerOpen(false)}
+        onAIAction={handleAIAction}
+        currentTasks={projectTasks}
       />
 
       <InviteMemberModal

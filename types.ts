@@ -58,10 +58,10 @@ export interface Task {
 }
 
 export interface ProjectResource {
-    palette: { name: string; value: string }[];
-    links: { label: string; url: string }[];
-    commands: { label: string; command: string }[];
-    stack: string[];
+  palette: { name: string; value: string }[];
+  links: { label: string; url: string }[];
+  commands: { label: string; command: string }[];
+  stack: string[];
 }
 
 export interface Project {
@@ -71,4 +71,19 @@ export interface Project {
   key: string; // e.g., 'DT' for DevTrack
   createdAt: string;
   resources?: ProjectResource; // The HUD Data
+}
+
+export interface AIMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  isThinking?: boolean;
+  pendingAction?: AIAction; // For approval workflow
+}
+
+export interface AIAction {
+  intent: 'CREATE_TASKS' | 'FILTER_VIEW' | 'INSIGHT' | 'NONE';
+  payload?: any;
+  summary?: string; // Natural language explanation of what was done
 }
