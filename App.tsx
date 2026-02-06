@@ -15,7 +15,7 @@ import SprintHistoryModal from './components/SprintHistoryModal';
 import FocusMode from './components/FocusMode';
 import InviteMemberModal from './components/InviteMemberModal';
 import { Task, Status, Project, User, Activity, AIAction } from './types';
-import { AIAssistantDrawer } from './components/AIAssistantDrawer';
+import { MorphPanel } from './components/ui/ai-input';
 import { processUserMessage as processUserMessageReal } from './lib/aiService';
 import { processUserMessage as processUserMessageMock } from './lib/mockAIService';
 import { USERS, TAG_COLORS } from './constants';
@@ -130,7 +130,7 @@ const App: React.FC = () => {
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
 
   // AI Assistant State
-  const [isAIDrawerOpen, setIsAIDrawerOpen] = useState(false);
+
   const [aiFilter, setAiFilter] = useState<{ priority?: string } | null>(null);
 
 
@@ -817,17 +817,7 @@ const App: React.FC = () => {
         {renderContent()}
 
         {/* Floating AI Button */}
-        {activeProject && (
-          <button
-            onClick={() => setIsAIDrawerOpen(true)}
-            className="fixed bottom-6 right-6 p-4 bg-gradient-to-br from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 rounded-full shadow-lg shadow-violet-500/25 text-white transition-all hover:scale-110 z-50 group"
-          >
-            <Bot size={24} className="group-hover:animate-bounce" />
-            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-zinc-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-              Ask AI Architect
-            </span>
-          </button>
-        )}
+
       </Layout>
 
       <TaskModal
@@ -869,9 +859,7 @@ const App: React.FC = () => {
         onUpdateTask={handleUpdateTask}
       />
 
-      <AIAssistantDrawer
-        isOpen={isAIDrawerOpen}
-        onClose={() => setIsAIDrawerOpen(false)}
+      <MorphPanel
         onAIAction={handleAIAction}
         currentTasks={projectTasks}
       />
