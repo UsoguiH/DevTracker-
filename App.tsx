@@ -689,6 +689,7 @@ const App: React.FC = () => {
   const [inviteProject, setInviteProject] = useState<{ id: string, name: string } | null>(null);
 
   const handleOpenInvite = (projectId: string, projectName: string) => { // Updated Signature
+    console.log('[App] handleOpenInvite called:', { projectId, projectName });
     setInviteProject({ id: projectId, name: projectName });
     setIsInviteModalOpen(true);
   };
@@ -773,7 +774,7 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard tasks={projectTasks} project={activeProject} />;
+        return <Dashboard tasks={projectTasks} project={activeProject} onAddMember={handleOpenInvite} />;
       case 'kanban':
         return (
           <KanbanBoard
@@ -788,7 +789,7 @@ const App: React.FC = () => {
       case 'timeline':
         return <Timeline tasks={filteredTasks} />;
       default:
-        return <Dashboard tasks={projectTasks} project={activeProject} />;
+        return <Dashboard tasks={projectTasks} project={activeProject} onAddMember={handleOpenInvite} />;
     }
   };
 
