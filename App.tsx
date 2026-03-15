@@ -836,6 +836,8 @@ const App: React.FC = () => {
         onUpdateProject={handleUpdateProject}
         user={user}
         onOpenFocusMode={() => setIsFocusModeOpen(true)}
+        tasks={projectTasks}
+        onViewTask={openTaskDetail}
       >
         {renderContent()}
 

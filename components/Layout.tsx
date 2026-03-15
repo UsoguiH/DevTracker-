@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -13,8 +13,9 @@ import {
   PanelRight,
   BrainCircuit
 } from 'lucide-react';
-import { User, Project } from '../types';
+import { User, Project, Task } from '../types';
 import ProjectHUD from './ProjectHUD';
+import OverdueAlertsPanel from './OverdueAlertsPanel';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,21 +28,41 @@ interface LayoutProps {
   activeProject: Project | null;
   onUpdateProject?: (projectId: string, updates: Partial<Project>) => void;
   user: User;
+  tasks: Task[];
+  onViewTask: (task: Task) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ 
-  children, 
-  activeTab, 
-  setActiveTab, 
-  searchQuery, 
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeTab,
+  setActiveTab,
+  searchQuery,
   setSearchQuery,
   onAddTask,
   onOpenFocusMode,
   activeProject,
   onUpdateProject,
-  user
+  user,
+  tasks,
+  onViewTask
 }) => {
   const [isHUDOpen, setIsHUDOpen] = useState(false);
+  const [isAlertsPanelOpen, setIsAlertsPanelOpen] = useState(false);
+
+  const alertCounts = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const parseDate = (s: string | undefined) => {
+      if (!s) return null;
+      const p = s.split('-');
+      if (p.length === 3) return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+      const d = new Date(s); d.setHours(0,0,0,0); return isNaN(d.getTime()) ? null : d;
+    };
+    const active = tasks.filter(t => t.status !== 'Done' && (t.dueDate || t.endDate));
+    const overdue = active.filter(t => { const d = parseDate(t.dueDate || t.endDate); return d !== null && d < today; }).length;
+    const dueToday = active.filter(t => { const d = parseDate(t.dueDate || t.endDate); return d !== null && d.getTime() === today.getTime(); }).length;
+    return { overdue, dueToday, total: overdue + dueToday };
+  }, [tasks]);
   
   const NavItem = ({ id, icon: Icon, label, disabled = false, onClick, special = false }: { id?: string; icon: any; label: string; disabled?: boolean; onClick?: () => void; special?: boolean }) => {
     const isActive = activeTab === id;
@@ -153,9 +174,21 @@ const Layout: React.FC<LayoutProps> = ({
                   </button>
               )}
 
-              <button className="relative text-gray-400 hover:text-white transition-colors duration-300 hover:scale-110">
+              <button
+                onClick={() => setIsAlertsPanelOpen(prev => !prev)}
+                className={`relative transition-all duration-300 hover:scale-110 ${alertCounts.total > 0 ? 'text-red-400 hover:text-red-300' : 'text-gray-400 hover:text-white'}`}
+              >
+                {alertCounts.overdue > 0 && (
+                  <span className="absolute -inset-2 rounded-full border border-red-500/30 animate-ping opacity-60 pointer-events-none"></span>
+                )}
                 <Bell size={20} />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full shadow-[0_0_10px_rgba(255,159,69,0.8)]"></span>
+                {alertCounts.total > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center bg-red-500 text-white text-[9px] font-black rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                    {alertCounts.total > 9 ? '9+' : alertCounts.total}
+                  </span>
+                ) : (
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full shadow-[0_0_6px_rgba(209,244,95,0.8)]"></span>
+                )}
               </button>
 
               <div 
@@ -170,6 +203,14 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
            </div>
         </header>
+
+        {/* Overdue Alerts Panel */}
+        <OverdueAlertsPanel
+          isOpen={isAlertsPanelOpen}
+          onClose={() => setIsAlertsPanelOpen(false)}
+          tasks={tasks}
+          onViewTask={onViewTask}
+        />
 
         {/* Page Content Scrollable Area */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 scroll-smooth relative">

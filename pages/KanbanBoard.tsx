@@ -25,28 +25,68 @@ const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDr
         }
     };
 
+    const isOverdue = (() => {
+        if (task.status === 'Done') return false;
+        const dateStr = task.dueDate || task.endDate;
+        if (!dateStr) return false;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const parts = dateStr.split('-');
+        const d = parts.length === 3
+            ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+            : new Date(dateStr);
+        return d < today;
+    })();
+
+    const isDueToday = (() => {
+        if (task.status === 'Done' || isOverdue) return false;
+        const dateStr = task.dueDate || task.endDate;
+        if (!dateStr) return false;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const parts = dateStr.split('-');
+        const d = parts.length === 3
+            ? new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+            : new Date(dateStr);
+        return d.getTime() === today.getTime();
+    })();
+
     return (
         <div
             onClick={onClick}
             className={`
-                bg-surface border border-border p-4 rounded-xl shadow-sm group relative 
+                bg-surface border p-4 rounded-xl shadow-sm group relative
                 overflow-hidden select-none w-full
+                ${isOverdue ? 'border-red-500/40 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]' : isDueToday ? 'border-amber-500/30' : 'border-border'}
                 ${isDragging
                     ? 'shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] ring-1 ring-primary bg-surface-highlight scale-105 z-50'
                     : 'hover:border-primary/50 hover:bg-surface-highlight hover:-translate-y-1 hover:shadow-xl transition-all duration-200'
                 }
             `}
         >
-            {/* Status Color Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ background: columnColor }}></div>
+            {/* Status Color Bar — turns red if overdue */}
+            <div
+                className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl transition-all duration-300"
+                style={{ background: isOverdue ? '#EF4444' : isDueToday ? '#F59E0B' : columnColor }}
+            ></div>
 
             <div className="flex justify-between items-start mb-3 pt-2">
                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
                     {task.priority}
                 </span>
-                {task.status === 'In Progress' && (
-                    <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">IN DEV</span>
-                )}
+                <div className="flex items-center gap-1.5">
+                    {isOverdue && (
+                        <span className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            Overdue
+                        </span>
+                    )}
+                    {isDueToday && (
+                        <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            Due Today
+                        </span>
+                    )}
+                    {task.status === 'In Progress' && !isOverdue && !isDueToday && (
+                        <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">IN DEV</span>
+                    )}
+                </div>
                 <button className="text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
                     <MoreHorizontal size={14} />
                 </button>
