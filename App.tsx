@@ -4,6 +4,7 @@ import { supabase } from './src/supabaseClient';
 import Login from './src/pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import AICommandCenter from './pages/AICommandCenter';
 import KanbanBoard from './pages/KanbanBoard';
 import Timeline from './pages/Timeline';
 import Projects from './pages/Projects';
@@ -788,6 +789,15 @@ const App: React.FC = () => {
         );
       case 'timeline':
         return <Timeline tasks={filteredTasks} />;
+      case 'ai':
+        return (
+          <AICommandCenter
+            tasks={projectTasks}
+            project={activeProject}
+            user={user}
+            onAIAction={handleAIAction}
+          />
+        );
       default:
         return <Dashboard tasks={projectTasks} project={activeProject} onAddMember={handleOpenInvite} />;
     }

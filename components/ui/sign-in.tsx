@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, User, AtSign } from 'lucide-react';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -31,6 +31,15 @@ interface SignInPageProps {
     onGoogleSignIn?: () => void;
     onResetPassword?: () => void;
     onCreateAccount?: () => void;
+}
+
+interface SignUpPageProps {
+    heroImageSrc?: string;
+    testimonials?: Testimonial[];
+    onSignUp?: (event: React.FormEvent<HTMLFormElement>) => void;
+    onGoogleSignIn?: () => void;
+    onSignIn?: () => void;
+    loading?: boolean;
 }
 
 // --- SUB-COMPONENTS ---
@@ -134,6 +143,127 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                             <TestimonialCard testimonial={testimonials[0]} delay="animate-delay-1000" />
                             {testimonials[1] && <div className="hidden xl:flex"><TestimonialCard testimonial={testimonials[1]} delay="animate-delay-1200" /></div>}
                             {testimonials[2] && <div className="hidden 2xl:flex"><TestimonialCard testimonial={testimonials[2]} delay="animate-delay-1400" /></div>}
+                        </div>
+                    )}
+                </section>
+            )}
+        </div>
+    );
+};
+
+// --- SIGN UP PAGE ---
+
+export const SignUpPage: React.FC<SignUpPageProps> = ({
+    heroImageSrc,
+    testimonials = [],
+    onSignUp,
+    onGoogleSignIn,
+    onSignIn,
+    loading = false,
+}) => {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+
+    return (
+        <div className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw] bg-black text-white">
+            {/* Left column: sign-up form */}
+            <section className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+                <div className="w-full max-w-md py-8">
+                    <div className="flex flex-col gap-5">
+                        <div>
+                            <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">
+                                <span className="font-light text-white tracking-tighter">Create Account</span>
+                            </h1>
+                            <p className="animate-element animate-delay-200 text-gray-400 mt-2">Join DevTracker and start shipping faster</p>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={onSignUp}>
+                            {/* Full Name */}
+                            <div className="animate-element animate-delay-200">
+                                <label className="text-sm font-medium text-gray-400">Full Name</label>
+                                <GlassInputWrapper>
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                        <input name="name" type="text" required placeholder="Your full name" className="w-full bg-transparent text-sm p-4 pl-11 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                    </div>
+                                </GlassInputWrapper>
+                            </div>
+
+                            {/* Handle */}
+                            <div className="animate-element animate-delay-300">
+                                <label className="text-sm font-medium text-gray-400">Username / Handle</label>
+                                <GlassInputWrapper>
+                                    <div className="relative">
+                                        <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                        <input name="handle" type="text" required placeholder="yourhandle" className="w-full bg-transparent text-sm p-4 pl-11 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                    </div>
+                                </GlassInputWrapper>
+                            </div>
+
+                            {/* Email */}
+                            <div className="animate-element animate-delay-400">
+                                <label className="text-sm font-medium text-gray-400">Email Address</label>
+                                <GlassInputWrapper>
+                                    <input name="email" type="email" required placeholder="Enter your email address" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                </GlassInputWrapper>
+                            </div>
+
+                            {/* Password */}
+                            <div className="animate-element animate-delay-500">
+                                <label className="text-sm font-medium text-gray-400">Password</label>
+                                <GlassInputWrapper>
+                                    <div className="relative">
+                                        <input name="password" type={showPassword ? 'text' : 'password'} required placeholder="Min. 6 characters" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
+                                            {showPassword ? <EyeOff className="w-5 h-5 text-gray-400 hover:text-white transition-colors" /> : <Eye className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />}
+                                        </button>
+                                    </div>
+                                </GlassInputWrapper>
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div className="animate-element animate-delay-600">
+                                <label className="text-sm font-medium text-gray-400">Confirm Password</label>
+                                <GlassInputWrapper>
+                                    <div className="relative">
+                                        <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} required placeholder="Re-enter your password" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute inset-y-0 right-3 flex items-center">
+                                            {showConfirm ? <EyeOff className="w-5 h-5 text-gray-400 hover:text-white transition-colors" /> : <Eye className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />}
+                                        </button>
+                                    </div>
+                                </GlassInputWrapper>
+                            </div>
+
+                            <button type="submit" disabled={loading} className="animate-element animate-delay-700 w-full rounded-2xl bg-primary py-4 font-medium text-black hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {loading ? 'Creating account...' : 'Create Account'}
+                            </button>
+                        </form>
+
+                        <div className="animate-element animate-delay-800 relative flex items-center justify-center">
+                            <span className="w-full border-t border-border"></span>
+                            <span className="px-4 text-sm text-gray-500 bg-black absolute">Or continue with</span>
+                        </div>
+
+                        <button onClick={onGoogleSignIn} className="animate-element animate-delay-900 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-surface-highlight transition-colors text-white">
+                            <GoogleIcon />
+                            Continue with Google
+                        </button>
+
+                        <p className="animate-element animate-delay-900 text-center text-sm text-gray-400">
+                            Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignIn?.(); }} className="text-primary hover:underline transition-colors">Sign In</a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Right column: hero image + testimonials */}
+            {heroImageSrc && (
+                <section className="hidden md:block flex-1 relative p-4">
+                    <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center" style={{ backgroundImage: `url(${heroImageSrc})` }}></div>
+                    {testimonials.length > 0 && (
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">
+                            <TestimonialCard testimonial={testimonials[0]} delay="animate-delay-1000" />
+                            {testimonials[1] && <div className="hidden xl:flex"><TestimonialCard testimonial={testimonials[1]} delay="animate-delay-1200" /></div>}
                         </div>
                     )}
                 </section>

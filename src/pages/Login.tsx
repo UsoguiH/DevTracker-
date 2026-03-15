@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { SignInPage, Testimonial } from "@/components/ui/sign-in";
+import { SignInPage, SignUpPage, Testimonial } from "@/components/ui/sign-in";
 
 const sampleTestimonials: Testimonial[] = [
     {
@@ -19,95 +19,151 @@ const sampleTestimonials: Testimonial[] = [
 ];
 
 const Login: React.FC = () => {
+    const [mode, setMode] = useState<'signin' | 'signup'>('signin');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
+    const clearMessages = () => {
+        setError(null);
+        setMessage(null);
+    };
+
     const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
-        setMessage(null);
+        clearMessages();
 
         const formData = new FormData(e.currentTarget);
         const email = formData.get('email') as string;
         const password = formData.get('password') as string;
 
-        try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-            if (error) throw error;
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) setError(error.message);
+
+        setLoading(false);
+    };
+
+    const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+        clearMessages();
+
+        const formData = new FormData(e.currentTarget);
+        const name = formData.get('name') as string;
+        const rawHandle = formData.get('handle') as string;
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+        const confirmPassword = formData.get('confirmPassword') as string;
+
+        if (password !== confirmPassword) {
+            setError("Passwords don't match.");
             setLoading(false);
+            return;
         }
+
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters.");
+            setLoading(false);
+            return;
+        }
+
+        const handle = rawHandle.startsWith('@') ? rawHandle : `@${rawHandle}`;
+
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+
+        if (signUpError) {
+            setError(signUpError.message);
+            setLoading(false);
+            return;
+        }
+
+        if (data.user) {
+            // Create profile row
+            const { error: profileError } = await supabase.from('profiles').insert({
+                id: data.user.id,
+                name,
+                handle,
+                avatar: '',
+            });
+
+            if (profileError) {
+                // Profile might already exist via trigger — not fatal
+                console.warn('Profile insert warning:', profileError.message);
+            }
+
+            // If email confirmation is required, session will be null
+            if (!data.session) {
+                setMessage("Account created! Check your email to confirm before signing in.");
+                setMode('signin');
+            }
+            // If auto-confirm is on, onAuthStateChange in App.tsx handles the redirect
+        }
+
+        setLoading(false);
     };
 
     const handleGoogleLogin = async () => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}`,
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                    },
-                },
-            });
-            if (error) throw error;
-        } catch (err: any) {
-            setError(err.message);
-        }
+        clearMessages();
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}`,
+                queryParams: { access_type: 'offline', prompt: 'consent' },
+            },
+        });
+        if (error) setError(error.message);
     };
 
-    const handleCreateAccount = async () => {
-        // Logic for create account - maybe redirect or show modal? 
-        // For now, reusing the sign-up logic logic but we need to know the email/password from the form if we want to sign up.
-        // But the new component separates "Sign In" form from "Create Account" link which is just a link.
-        // So I might need a state to switch the view if I want to keep it in one page, 
-        // OR just map the "Sign In" form to sign up if checking a "isSignUp" state.
-        // The provided component DOES NOT have a Sign Up form, only Sign In form.
-        // It has `onCreateAccount` callback.
-        // I'll assume for this task `onCreateAccount` just alerts or toggles mode? 
-        // The user said "Add this login component".
-        // I'll implement a simple toggle using a prompt or alert for now, or just make the form work for both if I modify the component?
-        // NO, I shouldn't modify the provided component too much.
-        // I will interpret `onCreateAccount` as creating a user with the same form data? 
-        // Actually, the form is inside the component. I can't access data from `onCreateAccount` click.
-        // I'll make the "Create Account" button alert that this demo only supports Sign In, 
-        // or better, I will assume the user wants me to wire it up.
-        // Let's prompt for email/password for signup or just switch the title?
-        // I will implement `handleSignIn` as "Sign In or Sign Up" if user holds shift? No.
-        // I'll just keep it as Sign In for now as per the component name. 
-        // Existing Login.tsx had toggling isSignUp. 
-        // I'll add a simple alert for Create Account: "Please use the API directly or I'll implement a separate route later".
-        // Actually, I can just use `window.prompt` for quick signup if needed, but intended usage of this component is likely just sign in.
-        alert("To sign up, please use the standard Supabase auth flow or ask the developer to enable the Sign Up form variant.");
-    };
-
-    return (
+    const Toast = () => (
         <>
             {error && (
-                <div className="fixed top-4 right-4 bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-xl z-50 animate-fade-in text-sm">
+                <div className="fixed top-4 right-4 bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl z-50 text-sm max-w-sm">
                     {error}
                 </div>
             )}
             {message && (
-                <div className="fixed top-4 right-4 bg-green-500/10 border border-green-500/50 text-green-500 p-4 rounded-xl z-50 animate-fade-in text-sm">
+                <div className="fixed top-4 right-4 bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-xl z-50 text-sm max-w-sm">
                     {message}
                 </div>
             )}
+        </>
+    );
+
+    if (mode === 'signup') {
+        return (
+            <>
+                <Toast />
+                <SignUpPage
+                    heroImageSrc="https://images.unsplash.com/photo-1555099962-4199c345e5dd?q=80&w=2070"
+                    testimonials={sampleTestimonials}
+                    onSignUp={handleSignUp}
+                    onGoogleSignIn={handleGoogleLogin}
+                    onSignIn={() => { clearMessages(); setMode('signin'); }}
+                    loading={loading}
+                />
+            </>
+        );
+    }
+
+    return (
+        <>
+            <Toast />
             <SignInPage
                 heroImageSrc="https://images.unsplash.com/photo-1555099962-4199c345e5dd?q=80&w=2070"
                 testimonials={sampleTestimonials}
                 onSignIn={handleSignIn}
                 onGoogleSignIn={handleGoogleLogin}
-                onCreateAccount={() => alert("Sign up is currently disabled in this demo UI. Please log in.")}
-                onResetPassword={() => alert("Password reset functionality coming soon.")}
+                onCreateAccount={() => { clearMessages(); setMode('signup'); }}
+                onResetPassword={async () => {
+                    const email = window.prompt('Enter your email address to reset password:');
+                    if (!email) return;
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}`,
+                    });
+                    if (error) setError(error.message);
+                    else setMessage('Password reset email sent! Check your inbox.');
+                }}
             />
         </>
     );

@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  KanbanSquare, 
-  CalendarDays, 
-  Settings, 
-  Search, 
-  Bell, 
+import {
+  LayoutDashboard,
+  KanbanSquare,
+  CalendarDays,
+  Settings,
+  Search,
+  Bell,
   Plus,
   FolderOpen,
   Zap,
-  PanelRight
+  PanelRight,
+  BrainCircuit
 } from 'lucide-react';
 import { User, Project } from '../types';
 import ProjectHUD from './ProjectHUD';
@@ -88,6 +89,7 @@ const Layout: React.FC<LayoutProps> = ({
            <NavItem id="dashboard" icon={LayoutDashboard} label="Dashboard" disabled={!activeProject} />
            <NavItem id="kanban" icon={KanbanSquare} label="Kanban Board" disabled={!activeProject} />
            <NavItem id="timeline" icon={CalendarDays} label="Timeline" disabled={!activeProject} />
+           <NavItem id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} />
            
            <div className="mt-4">
                <NavItem icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} special={true} />
