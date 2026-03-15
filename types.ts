@@ -2,6 +2,21 @@
 export type Priority = 'High' | 'Medium' | 'Low';
 export type Status = 'To Do' | 'In Progress' | 'Testing' | 'Done';
 
+export interface WorkflowStatus {
+  id: string;
+  name: string;
+  color: string; // hex value e.g. '#9ef5a3'
+  type: 'start' | 'active' | 'done';
+  order: number;
+}
+
+export const DEFAULT_WORKFLOW: WorkflowStatus[] = [
+  { id: 'todo',       name: 'To Do',       color: '#71717a', type: 'start',  order: 0 },
+  { id: 'inprogress', name: 'In Progress', color: '#3b82f6', type: 'active', order: 1 },
+  { id: 'testing',    name: 'Testing',     color: '#f59e0b', type: 'active', order: 2 },
+  { id: 'done',       name: 'Done',        color: '#9ef5a3', type: 'done',   order: 3 },
+];
+
 export interface User {
   id: string;
   name: string;
@@ -71,6 +86,7 @@ export interface Project {
   key: string; // e.g., 'DT' for DevTrack
   createdAt: string;
   resources?: ProjectResource; // The HUD Data
+  workflow?: WorkflowStatus[]; // Custom kanban columns
 }
 
 export interface AIMessage {

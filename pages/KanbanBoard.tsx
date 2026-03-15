@@ -1,27 +1,21 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Plus, Clock, MessageSquare, CheckSquare, X, History, Percent } from 'lucide-react';
 import { USERS } from '../constants';
-import { Task, Status } from '../types';
+import { Task, Status, WorkflowStatus, DEFAULT_WORKFLOW } from '../types';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface KanbanBoardProps {
     tasks: Task[];
-    onMoveTask: (taskId: string, newStatus: Status) => void;
+    onMoveTask: (taskId: string, newStatus: string) => void;
     onAddTask: (status: Status) => void;
     onEditTask: (task: Task) => void;
     onCompleteSprint: (sprintName: string) => void;
     onViewHistory: () => void;
+    workflow?: WorkflowStatus[];
 }
 
-const columns: { id: Status; title: string; color: string }[] = [
-    { id: 'To Do', title: 'To Do', color: 'bg-zinc-600' },
-    { id: 'In Progress', title: 'In Progress', color: 'bg-blue-500' },
-    { id: 'Testing', title: 'Testing', color: 'bg-secondary' },
-    { id: 'Done', title: 'Done', color: 'bg-primary' },
-];
-
 // Extracted Card Component for cleaner separation of drag logic vs visual logic
-const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDragging: boolean; onClick: () => void; columnColor: string }) => {
+const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDragging: boolean; onClick: () => void; columnColor: string; }) => {
     const getPriorityColor = (priority: string) => {
         switch (priority) {
             case 'High': return 'bg-orange-900/40 text-orange-400 border border-orange-900';
@@ -44,7 +38,7 @@ const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDr
             `}
         >
             {/* Status Color Bar */}
-            <div className={`absolute top-0 left-0 right-0 h-1.5 ${columnColor}`}></div>
+            <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ background: columnColor }}></div>
 
             <div className="flex justify-between items-start mb-3 pt-2">
                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
@@ -117,9 +111,12 @@ const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDr
     );
 };
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask, onEditTask, onCompleteSprint, onViewHistory }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask, onEditTask, onCompleteSprint, onViewHistory, workflow }) => {
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
     const [sprintName, setSprintName] = useState('');
+
+    const activeWorkflow = (workflow && workflow.length > 0 ? workflow : DEFAULT_WORKFLOW)
+        .slice().sort((a, b) => a.order - b.order);
 
     const handleDragEnd = (result: DropResult) => {
         const { destination, source, draggableId } = result;
@@ -238,9 +235,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
 
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
                 <DragDropContext onDragEnd={handleDragEnd}>
-                    <div className="flex h-full gap-6 min-w-[1200px]">
-                        {columns.map((column) => {
-                            const columnTasks = tasks.filter((task) => task.status === column.id);
+                    <div className="flex h-full gap-6" style={{ minWidth: `${activeWorkflow.length * 320}px` }}>
+                        {activeWorkflow.map((column) => {
+                            const columnTasks = tasks.filter((task) => task.status === column.name);
 
                             return (
                                 <div
@@ -250,8 +247,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                                     {/* Column Header */}
                                     <div className="flex items-center justify-between mb-4 px-2">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-2 h-2 rounded-full ${column.id === 'In Progress' ? 'bg-blue-500 animate-pulse' : column.id === 'Testing' ? 'bg-secondary' : column.id === 'Done' ? 'bg-primary' : 'bg-zinc-600'}`}></div>
-                                            <h2 className="text-xs font-bold tracking-widest uppercase text-gray-400">{column.title}</h2>
+                                            <div
+                                                className={`w-2 h-2 rounded-full ${column.type === 'active' ? 'animate-pulse' : ''}`}
+                                                style={{ background: column.color }}
+                                            />
+                                            <h2 className="text-xs font-bold tracking-widest uppercase text-gray-400">{column.name}</h2>
                                             <span className="px-2 py-0.5 rounded-full bg-surface-highlight text-[10px] font-bold text-gray-300">
                                                 {columnTasks.length}
                                             </span>
@@ -262,7 +262,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                                     </div>
 
                                     {/* Droppable Area */}
-                                    <Droppable droppableId={column.id}>
+                                    <Droppable droppableId={column.name}>
                                         {(provided, snapshot) => (
                                             <div
                                                 {...provided.droppableProps}
@@ -272,7 +272,6 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                                                 {columnTasks.map((task, index) => (
                                                     <Draggable key={task.id} draggableId={task.id} index={index}>
                                                         {(provided, snapshot) => {
-                                                            // Animation Speed Customization
                                                             const originalStyle = provided.draggableProps.style || {};
                                                             const style = snapshot.isDropAnimating ? {
                                                                 ...originalStyle,
@@ -303,7 +302,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
 
                                                 {/* Add Task Button inside column */}
                                                 <button
-                                                    onClick={() => onAddTask(column.id)}
+                                                    onClick={() => onAddTask(column.name as Status)}
                                                     className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-dashed border-border text-gray-500 hover:text-white hover:border-primary/50 hover:bg-surface-highlight transition-all mt-2 group"
                                                 >
                                                     <Plus size={16} className="group-hover:scale-125 transition-transform" />

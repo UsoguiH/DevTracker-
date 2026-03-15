@@ -15,7 +15,7 @@ import TaskDetailDrawer from './components/TaskDetailDrawer';
 import SprintHistoryModal from './components/SprintHistoryModal';
 import FocusMode from './components/FocusMode';
 import InviteMemberModal from './components/InviteMemberModal';
-import { Task, Status, Project, User, Activity, AIAction } from './types';
+import { Task, Status, Project, User, Activity, AIAction, WorkflowStatus } from './types';
 import { MorphPanel } from './components/ui/ai-input';
 import { processUserMessage as processUserMessageReal } from './lib/aiService';
 import { processUserMessage as processUserMessageMock } from './lib/mockAIService';
@@ -59,7 +59,8 @@ const App: React.FC = () => {
         // Map Supabase snake_case to internal camelCase
         const mappedProjects = projectsRes.data.map((p: any) => ({
           ...p,
-          createdAt: p.created_at
+          createdAt: p.created_at,
+          workflow: p.workflow ?? null,
         }));
         setProjects(mappedProjects);
 
@@ -359,7 +360,9 @@ const App: React.FC = () => {
     // Optimistic update
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updates } : p));
 
-    await supabase.from('projects').update(updates).eq('id', projectId);
+    const dbUpdates: any = { ...updates };
+    if (updates.workflow) dbUpdates.workflow = updates.workflow;
+    await supabase.from('projects').update(dbUpdates).eq('id', projectId);
   };
 
   const handleEditProjectClick = (project: Project) => {
@@ -744,7 +747,15 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (activeTab === 'settings') {
-      return <Settings user={user} onUpdateUser={handleUpdateUser} onClearData={handleClearData} />;
+      return (
+        <Settings
+          user={user}
+          onUpdateUser={handleUpdateUser}
+          onClearData={handleClearData}
+          activeProject={activeProject}
+          onUpdateProject={handleUpdateProject}
+        />
+      );
     }
 
     if (activeTab === 'projects') {
@@ -785,6 +796,7 @@ const App: React.FC = () => {
             onEditTask={openTaskDetail}
             onCompleteSprint={handleCompleteSprint}
             onViewHistory={() => setIsHistoryModalOpen(true)}
+            workflow={activeProject?.workflow ?? undefined}
           />
         );
       case 'timeline':

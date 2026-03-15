@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Trash2, Bell, Shield, Smartphone, Mail, User as UserIcon, LogOut } from 'lucide-react';
-import { User } from '../types';
+import { Save, Trash2, Bell, Shield, Smartphone, Mail, User as UserIcon, LogOut, Workflow } from 'lucide-react';
+import { User, Project, WorkflowStatus, DEFAULT_WORKFLOW } from '../types';
+import WorkflowEditor from '../components/WorkflowEditor';
 
 interface SettingsProps {
     user: User;
     onUpdateUser: (updatedUser: User) => void;
     onClearData: () => void;
+    activeProject?: Project | null;
+    onUpdateProject?: (projectId: string, updates: Partial<Project>) => Promise<void>;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) => {
+const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, activeProject, onUpdateProject }) => {
     const [formData, setFormData] = useState<User>(user);
     const [isDirty, setIsDirty] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
@@ -171,6 +174,29 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData }) 
                         </div>
                     </div>
                 </div>
+
+                {/* Workflow Editor — only when a project is active */}
+                {activeProject && onUpdateProject && (
+                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-300">
+                        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
+                            <div className="p-3 bg-surface-highlight rounded-xl text-primary">
+                                <Workflow size={24} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Project Workflow</h2>
+                                <p className="text-sm text-gray-400">
+                                    Customize kanban columns for <span className="text-white font-semibold">{activeProject.name}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <WorkflowEditor
+                            workflow={activeProject.workflow ?? DEFAULT_WORKFLOW}
+                            onSave={async (newWorkflow: WorkflowStatus[]) => {
+                                await onUpdateProject(activeProject.id, { workflow: newWorkflow });
+                            }}
+                        />
+                    </div>
+                )}
 
                 {/* Account Actions */}
                 <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-400">
