@@ -20,17 +20,15 @@ Kanban, timelines, focus sessions, and an AI architect that turns a one-line goa
 
 A 28-second product tour — rendered programmatically with [Remotion](https://remotion.dev), so every frame is React.
 
-https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4
-
 <div align="center">
 
-[![Watch the DevTrack demo](assets/devtrack-poster.png)](https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4)
+[![DevTrack demo](assets/devtrack-demo.gif)](https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4)
 
-<sub>▶ Inline player not loading above? <b>Click the preview</b> to watch or download.</sub>
+<sub>▶ <b><a href="https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4">Watch in full HD</a></b> &nbsp;·&nbsp; the GIF above is a lightweight preview</sub>
 
 </div>
 
-> Want to tweak it? The whole video is code — source lives in [`remotion/`](remotion). Run `cd remotion && npm run dev` to scrub it in Remotion Studio, or `npm run render` to rebuild the MP4.
+> Want to tweak it? The whole video is code — source lives in [`remotion/`](remotion). Run `cd remotion && npm run dev` to scrub it in Remotion Studio, or `npm run render` to rebuild it.
 
 ---
 
