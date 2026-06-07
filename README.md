@@ -1,96 +1,170 @@
-# DevTracker
+<div align="center">
 
-> **Your AI runs the project. You just build.**
+# DevTrack
 
-Most project tools ask you to manage the tool. DevTracker flips that around — an AI project manager sits inside your workspace, watches what's happening, and moves the work forward so you don't have to babysit a board.
+**A project management workspace built for the way developers actually work.**
 
----
+Kanban, timelines, focus sessions, and an AI architect that turns a one-line goal into a real engineering plan — wrapped in a fast, dark, keyboard-friendly UI.
 
-## The Idea
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%26%20Edge-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-D1F45F.svg)](LICENSE)
 
-You've seen project management apps. Boards, tickets, sprints, standups, 14 tabs of "who's doing what." It's a second job.
-
-**DevTracker replaces that second job with an AI.**
-
-The AI is the PM. It assigns work, nudges when things slip, breaks big tasks into subtasks, writes the status updates, flags the bottleneck before it becomes one. You and your team ship. The AI handles the choreography.
-
----
-
-## The Main Feature — AI Project Manager
-
-Not a chatbot. Not a sidebar helper. A real PM that lives in your project.
-
-Here's what it actually does:
-
-- **Plans the work** — Drop in a goal ("ship onboarding v2 by Friday"). It generates tasks, estimates, assignees, and a timeline.
-- **Assigns smartly** — Knows who's overloaded, who's idle, who's good at what. Distributes work accordingly.
-- **Keeps things moving** — Sees a task sitting in *In Progress* for 3 days with no updates? It pings. Sees a blocker? It escalates.
-- **Catches overdue before you do** — Built-in due-date alerts + AI reasoning about *why* something's slipping.
-- **Writes the boring stuff** — Status reports, standup summaries, end-of-sprint reviews. Auto-generated, actually accurate.
-- **Answers real questions** — "What's blocking the launch?" "Who's free this week?" "Are we on track?" — it knows, because it's been watching the whole time.
-
-The goal: you open DevTracker and the project has already been managed. You just do the work.
+</div>
 
 ---
 
-## What's Inside
+## 🎬 Demo
 
-| View | What it's for |
-|---|---|
-| **Dashboard** | Your tasks, your day, your pulse. |
-| **Kanban** | Drag and drop. The AI rebalances as you move things. |
-| **Timeline** | Gantt-style. See the future. |
-| **Projects** | Every project you touch, in one grid. |
-| **AI Command Center** | Talk to your PM. Ask anything. |
+> **Watch DevTrack in action:**
 
-Plus: custom workflows per project, real-time collaboration, overdue alerts, a proper activity log, and a dark mode that's actually dark.
+<!--
+  Replace the line below with your demo video.
+  GitHub renders uploaded .mp4 files inline — drag a video into this file
+  while editing on GitHub, or paste a YouTube/Loom link.
+
+  Example (uploaded video):
+  https://github.com/UsoguiH/DevTracker-/assets/your-asset-id/demo.mp4
+
+  Example (YouTube thumbnail link):
+  [![Watch the demo](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtu.be/VIDEO_ID)
+-->
+
+<div align="center">
+
+**▶️ &nbsp; Demo video coming soon — drop it here.**
+
+</div>
 
 ---
 
-## Stack
+## Why DevTrack
 
-- **React 18** + **TypeScript** + **Vite**
-- **Supabase** — auth, database, realtime
-- **Google Gemini** — the brain behind the PM
-- **Tailwind** + custom design system
-- **Framer Motion** — because snappy beats static
+Most project tools are built for managers reporting on developers. DevTrack is built for the developer running the project — the solo builder shipping side projects, the freelancer juggling client work, the small team that wants structure without ceremony.
 
----
+It assumes you already think in tasks, sprints, and commits. So instead of dropdowns and approval chains, it gives you a fast board, a real timeline, a focus timer, and an AI that scaffolds the boring parts of planning so you can get back to building.
+
+## Features
+
+- **AI Command Center** — Describe a goal in plain English ("build a portfolio site with a contact form") and the AI architect decomposes it into 3–6 concrete, technical tasks with priorities, tags, and dates. Powered by an OpenAI model running on a Supabase Edge Function, with an approve-before-apply workflow so nothing lands on your board without your say-so.
+- **Kanban board** — Smooth drag-and-drop columns with per-project **custom workflows**. Rename, recolor, and reorder stages to match how *your* project actually moves.
+- **Timeline view** — A fluid, animated schedule of tasks by start/end date for spotting overlaps and gaps at a glance.
+- **Focus Mode** — A built-in Pomodoro timer with a scratchpad and an "exit challenge" that makes you think twice before bailing on a session.
+- **Sprint Replay** — Scrub through your board's history like a time-lapse to see how work actually flowed across the sprint.
+- **Contribution heatmap** — A GitHub-style activity grid of completed work, with streak tracking to keep momentum visible.
+- **Project HUD** — A per-project resource panel for your color palette, key links, shell commands, and tech stack — the stuff you keep re-looking-up, in one place.
+- **Due-date & overdue alerts** — Surfaces what's slipping before it becomes a problem.
+- **Team collaboration** — Invite members, assign tasks, comment, and follow a per-task activity feed.
+- **Dashboards** — Live stats with count-up animations, priority breakdowns, and streaks.
+
+## Tech Stack
+
+| Layer | Choice |
+| --- | --- |
+| Framework | React 18 + TypeScript |
+| Build | Vite 6 |
+| Styling | Tailwind CSS · `class-variance-authority` · `tailwind-merge` |
+| Motion | `motion` (Framer Motion) |
+| Charts | Recharts |
+| Drag & drop | `@hello-pangea/dnd` |
+| Icons | `lucide-react` |
+| Dates | `date-fns` · `react-day-picker` |
+| Backend | Supabase — Postgres, Auth, Edge Functions (Deno) |
+| AI | OpenAI (via the `ai-architect` Edge Function) |
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project (free tier is fine)
+- An OpenAI API key (only needed for the AI Command Center)
+
+### 1. Clone & install
+
 ```bash
-# 1. Install
+git clone https://github.com/UsoguiH/DevTracker-.git
+cd DevTracker-
 npm install
+```
 
-# 2. Add your keys
-cp .env.example .env.local
-# Fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and your Gemini key
+### 2. Configure environment
 
-# 3. Run
+Create a `.env` file in the project root:
+
+```env
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+> These come from your Supabase dashboard under **Project Settings → API**.
+
+### 3. Run the dev server
+
+```bash
 npm run dev
 ```
 
-Open `http://localhost:5173`. Sign up. Create a project. Let the AI take the wheel.
+The app starts on the Vite dev server (default `http://localhost:5173`).
 
----
-
-## Scripts
+### 4. Build for production
 
 ```bash
-npm run dev       # local dev server
-npm run build     # production bundle
-npm run preview   # preview the production build
+npm run build    # outputs to dist/
+npm run preview  # serve the production build locally
 ```
 
----
+## Supabase Setup
 
-## Why You'll Actually Use This
+DevTrack expects a few tables and one Edge Function.
 
-Because every other tool makes you *manage the project manager*. This one manages itself.
+**Tables** (core): `profiles`, `projects`, `project_members`, `tasks`. The app maps Supabase `snake_case` columns to internal `camelCase`, and stores per-project workflows as JSON on the `projects` table.
 
-You came to ship software. DevTracker makes sure that's all you have to do.
+**Auth**: email/password sign-up and Google OAuth are wired through Supabase Auth.
 
----
+**AI Edge Function** — the `ai-architect` function lives in [`supabase/functions/ai-architect`](supabase/functions/ai-architect). Deploy it and give it your OpenAI key:
 
-**Built for people who'd rather write code than update tickets.**
+```bash
+supabase functions deploy ai-architect
+supabase secrets set OPENAI_API_KEY=sk-...
+```
+
+> Don't have an OpenAI key yet? The app ships with a mock AI service (`lib/mockAIService.ts`) so you can explore the planning flow without a live backend.
+
+## Project Structure
+
+```
+.
+├── App.tsx                  # Root state, routing, data fetching
+├── pages/                   # Top-level views
+│   ├── Dashboard.tsx        # Stats, streaks, activity
+│   ├── KanbanBoard.tsx      # Drag-and-drop board
+│   ├── Timeline.tsx         # Animated schedule
+│   ├── AICommandCenter.tsx  # AI planning interface
+│   ├── Projects.tsx         # Project switcher
+│   └── Settings.tsx
+├── components/              # Focus Mode, Sprint Replay, Heatmap, HUD, modals…
+├── lib/                     # aiService (real) + mockAIService + utils
+├── src/                     # Supabase client + auth pages
+├── supabase/functions/      # ai-architect Edge Function (Deno)
+├── hooks/                   # useCountUp, etc.
+└── types.ts                 # Shared domain types
+```
+
+## Roadmap
+
+- [ ] Offline-first sync
+- [ ] Recurring tasks
+- [ ] Calendar integrations (Google Calendar)
+- [ ] Public read-only board sharing
+- [ ] Per-project analytics export
+
+## Contributing
+
+Issues and pull requests are welcome. If you're planning a larger change, open an issue first so we can talk through the direction. Keep PRs focused and described, and match the existing TypeScript/Tailwind conventions.
+
+## License
+
+Released under the [MIT License](LICENSE).
