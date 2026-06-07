@@ -20,17 +20,13 @@ Kanban, timelines, focus sessions, and an AI architect that turns a one-line goa
 
 A 28-second product tour — rendered programmatically with [Remotion](https://remotion.dev), so every frame is React.
 
-<div align="center">
-
 https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4
-
-</div>
 
 <div align="center">
 
 [![Watch the DevTrack demo](assets/devtrack-poster.png)](https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4)
 
-<sub>▶ Inline player not loading? <b>Click the preview above</b> to watch or download.</sub>
+<sub>▶ Inline player not loading above? <b>Click the preview</b> to watch or download.</sub>
 
 </div>
 
