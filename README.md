@@ -18,25 +18,23 @@ Kanban, timelines, focus sessions, and an AI architect that turns a one-line goa
 
 ## 🎬 Demo
 
-> **Watch DevTrack in action:**
-
-<!--
-  Replace the line below with your demo video.
-  GitHub renders uploaded .mp4 files inline — drag a video into this file
-  while editing on GitHub, or paste a YouTube/Loom link.
-
-  Example (uploaded video):
-  https://github.com/UsoguiH/DevTracker-/assets/your-asset-id/demo.mp4
-
-  Example (YouTube thumbnail link):
-  [![Watch the demo](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtu.be/VIDEO_ID)
--->
+A 28-second product tour — rendered programmatically with [Remotion](https://remotion.dev), so every frame is React.
 
 <div align="center">
 
-**▶️ &nbsp; Demo video coming soon — drop it here.**
+https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4
 
 </div>
+
+<div align="center">
+
+[![Watch the DevTrack demo](assets/devtrack-poster.png)](https://github.com/UsoguiH/DevTracker-/raw/main/assets/devtrack-demo.mp4)
+
+<sub>▶ Inline player not loading? <b>Click the preview above</b> to watch or download.</sub>
+
+</div>
+
+> Want to tweak it? The whole video is code — source lives in [`remotion/`](remotion). Run `cd remotion && npm run dev` to scrub it in Remotion Studio, or `npm run render` to rebuild the MP4.
 
 ---
 

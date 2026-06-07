@@ -1,0 +1,25 @@
+{
+  "name": "devtrack-video",
+  "version": "1.0.0",
+  "description": "Apple-style product launch video for DevTrack, built with Remotion.",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render Main out/devtrack.mp4 --codec=h264",
+    "render:hq": "remotion render Main out/devtrack.mp4 --codec=h264 --crf=16",
+    "still": "remotion still Main out/poster.png --frame=60",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.290",
+    "@remotion/google-fonts": "4.0.290",
+    "@remotion/transitions": "4.0.290",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.290"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.1",
+    "typescript": "5.8.2"
+  }
+}
