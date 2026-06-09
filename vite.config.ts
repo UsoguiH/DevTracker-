@@ -6,8 +6,12 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
-        port: 3000,
+        port: 3001,
         host: '0.0.0.0',
+        proxy: {
+          // Forward AI calls to the local Claude Code server (npm run ai-server).
+          '/api': 'http://localhost:8787',
+        },
       },
       plugins: [react()],
       define: {

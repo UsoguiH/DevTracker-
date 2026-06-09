@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Trash2, Bell, Shield, Smartphone, Mail, User as UserIcon, LogOut, Workflow } from 'lucide-react';
+import { Save, Bell, Shield, Smartphone, Mail, User as UserIcon, LogOut, Workflow } from 'lucide-react';
 import { User, Project, WorkflowStatus, DEFAULT_WORKFLOW } from '../types';
 import WorkflowEditor from '../components/WorkflowEditor';
 
@@ -16,10 +16,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, ac
     const [isDirty, setIsDirty] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
 
-    // Sync local state if prop changes
-    useEffect(() => {
-        setFormData(user);
-    }, [user]);
+    useEffect(() => { setFormData(user); }, [user]);
 
     const handleChange = (field: keyof User, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -32,93 +29,62 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, ac
         onUpdateUser(formData);
         setIsDirty(false);
         setShowSaved(true);
-
-        // Hide "Saved" message after 3 seconds
         setTimeout(() => setShowSaved(false), 3000);
     };
 
+    const card = 'bg-surface-card border border-hairline rounded-xl p-8';
+    const label = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted mb-1.5 group-focus-within:text-primary transition-colors';
+    const input = 'w-full bg-surface-card border border-hairline-strong rounded-md px-4 py-3 text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300';
+
     return (
         <div className="max-w-4xl mx-auto pb-10">
-            <h1 className="text-3xl font-bold text-white mb-2 animate-slide-up">Settings</h1>
-            <p className="text-gray-400 mb-8 animate-slide-up delay-100">Manage your profile and application preferences.</p>
+            <h1 className="display text-[36px] text-ink mb-1 animate-slide-up">Settings</h1>
+            <p className="text-body mb-8 animate-slide-up delay-100">Manage your profile and application preferences.</p>
 
             <div className="grid gap-8">
-                {/* Profile Section */}
-                <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-100">
-                    <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
-                        <div className="p-3 bg-surface-highlight rounded-xl text-primary">
-                            <UserIcon size={24} />
-                        </div>
+                {/* Profile */}
+                <div className={`${card} animate-slide-up delay-100`}>
+                    <div className="flex items-center gap-4 mb-6 pb-6 border-b border-hairline">
+                        <div className="p-3 bg-canvas-soft rounded-lg text-primary"><UserIcon size={24} /></div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Profile Information</h2>
-                            <p className="text-sm text-gray-400">Update your public profile details.</p>
+                            <h2 className="text-xl font-semibold text-ink">Profile Information</h2>
+                            <p className="text-sm text-muted">Update your public profile details.</p>
                         </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="flex flex-col md:flex-row gap-8 items-start">
-                            {/* Avatar Preview */}
                             <div className="flex flex-col items-center gap-4">
                                 <div className="relative group">
-                                    <img
-                                        src={formData.avatar}
-                                        alt="Avatar"
-                                        className="w-32 h-32 rounded-full border-4 border-surface-highlight object-cover shadow-2xl transition-transform duration-500 group-hover:scale-105"
-                                    />
-                                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-not-allowed">
-                                        <span className="text-xs font-bold text-white">Preview Only</span>
+                                    <img src={formData.avatar} alt="Avatar" className="w-32 h-32 rounded-full border-4 border-hairline object-cover transition-transform duration-500 group-hover:scale-105" />
+                                    <div className="absolute inset-0 rounded-full bg-ink/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-not-allowed">
+                                        <span className="text-xs font-bold text-canvas">Preview Only</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Inputs */}
                             <div className="flex-1 w-full space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="group">
-                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5 group-focus-within:text-primary transition-colors">Display Name</label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={(e) => handleChange('name', e.target.value)}
-                                            className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300"
-                                            placeholder="Your Name"
-                                        />
+                                        <label className={label}>Display Name</label>
+                                        <input type="text" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} className={input} placeholder="Your Name" />
                                     </div>
                                     <div className="group">
-                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5 group-focus-within:text-primary transition-colors">Handle</label>
-                                        <input
-                                            type="text"
-                                            value={formData.handle}
-                                            onChange={(e) => handleChange('handle', e.target.value)}
-                                            className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300"
-                                            placeholder="@handle"
-                                        />
+                                        <label className={label}>Handle</label>
+                                        <input type="text" value={formData.handle} onChange={(e) => handleChange('handle', e.target.value)} className={input} placeholder="@handle" />
                                     </div>
                                 </div>
-
                                 <div className="group">
-                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1.5 group-focus-within:text-primary transition-colors">Avatar URL</label>
-                                    <input
-                                        type="text"
-                                        value={formData.avatar}
-                                        onChange={(e) => handleChange('avatar', e.target.value)}
-                                        className="w-full bg-background/50 border border-border rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300 font-mono text-xs text-gray-300"
-                                        placeholder="https://..."
-                                    />
-                                    <p className="text-[10px] text-gray-500 mt-1">Paste a direct image link. Support for uploads coming soon.</p>
+                                    <label className={label}>Avatar URL</label>
+                                    <input type="text" value={formData.avatar} onChange={(e) => handleChange('avatar', e.target.value)} className={input + ' font-mono text-xs text-body'} placeholder="https://..." />
+                                    <p className="text-[10px] text-muted mt-1">Paste a direct image link. Support for uploads coming soon.</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-4 border-t border-border">
-                            <button
-                                type="submit"
-                                disabled={!isDirty}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300
-                                    ${isDirty
-                                        ? 'bg-primary text-black hover:scale-105 shadow-[0_0_15px_rgba(209,244,95,0.3)]'
-                                        : 'bg-surface-highlight text-gray-500 cursor-not-allowed'}`}
-                            >
+                        <div className="flex justify-end pt-4 border-t border-hairline">
+                            <button type="submit" disabled={!isDirty}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-md font-medium text-sm transition-all duration-300 ${isDirty ? 'bg-primary text-on-primary hover:bg-primary-active' : 'bg-surface-strong text-muted-soft cursor-not-allowed'}`}>
                                 <Save size={18} />
                                 {showSaved ? 'Saved!' : 'Save Changes'}
                             </button>
@@ -126,99 +92,73 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, ac
                     </form>
                 </div>
 
-                {/* Notifications & Preferences Mockup */}
+                {/* Notifications & Privacy */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-200">
+                    <div className={`${card} animate-slide-up delay-200`}>
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="p-3 bg-surface-highlight rounded-xl text-secondary">
-                                <Bell size={24} />
-                            </div>
-                            <h2 className="text-lg font-bold text-white">Notifications</h2>
+                            <div className="p-3 bg-canvas-soft rounded-lg text-primary"><Bell size={24} /></div>
+                            <h2 className="text-lg font-semibold text-ink">Notifications</h2>
                         </div>
-
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-background/30 rounded-xl border border-border/50">
-                                <div className="flex items-center gap-3">
-                                    <Mail size={18} className="text-gray-400" />
-                                    <span className="text-sm font-medium text-gray-200">Email Alerts</span>
-                                </div>
-                                <div className="w-10 h-6 bg-primary rounded-full relative cursor-pointer opacity-80 hover:opacity-100">
-                                    <div className="absolute right-1 top-1 w-4 h-4 bg-black rounded-full shadow-sm"></div>
-                                </div>
+                            <div className="flex items-center justify-between p-4 bg-canvas-soft rounded-md border border-hairline">
+                                <div className="flex items-center gap-3"><Mail size={18} className="text-muted" /><span className="text-sm font-medium text-ink">Email Alerts</span></div>
+                                <div className="w-10 h-6 bg-primary rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-on-primary rounded-full"></div></div>
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-background/30 rounded-xl border border-border/50">
-                                <div className="flex items-center gap-3">
-                                    <Smartphone size={18} className="text-gray-400" />
-                                    <span className="text-sm font-medium text-gray-200">Push Notifications</span>
-                                </div>
-                                <div className="w-10 h-6 bg-surface-highlight rounded-full relative cursor-pointer border border-border hover:border-gray-500">
-                                    <div className="absolute left-1 top-1 w-4 h-4 bg-gray-500 rounded-full"></div>
-                                </div>
+                            <div className="flex items-center justify-between p-4 bg-canvas-soft rounded-md border border-hairline">
+                                <div className="flex items-center gap-3"><Smartphone size={18} className="text-muted" /><span className="text-sm font-medium text-ink">Push Notifications</span></div>
+                                <div className="w-10 h-6 bg-surface-strong rounded-full relative cursor-pointer border border-hairline-strong"><div className="absolute left-1 top-1 w-4 h-4 bg-muted-soft rounded-full"></div></div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-300">
+                    <div className={`${card} animate-slide-up delay-300`}>
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="p-3 bg-surface-highlight rounded-xl text-white">
-                                <Shield size={24} />
-                            </div>
-                            <h2 className="text-lg font-bold text-white">Privacy</h2>
+                            <div className="p-3 bg-canvas-soft rounded-lg text-ink"><Shield size={24} /></div>
+                            <h2 className="text-lg font-semibold text-ink">Privacy</h2>
                         </div>
-                        <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-                            Your data is stored locally in your browser's LocalStorage. We do not transmit your tasks or project data to any external server.
+                        <p className="text-sm text-body mb-6 leading-relaxed">
+                            Your project data is stored securely in your Supabase workspace and synced across your devices.
                         </p>
-                        <div className="flex items-center gap-2 text-xs font-mono text-primary bg-primary/10 p-3 rounded-lg border border-primary/20">
-                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                            Local Storage: Connected
+                        <div className="flex items-center gap-2 text-xs font-mono text-success bg-success/10 p-3 rounded-md border border-success/20">
+                            <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                            Cloud Sync: Connected
                         </div>
                     </div>
                 </div>
 
-                {/* Workflow Editor — only when a project is active */}
+                {/* Workflow */}
                 {activeProject && onUpdateProject && (
-                    <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-300">
-                        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
-                            <div className="p-3 bg-surface-highlight rounded-xl text-primary">
-                                <Workflow size={24} />
-                            </div>
+                    <div className={`${card} animate-slide-up delay-300`}>
+                        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-hairline">
+                            <div className="p-3 bg-canvas-soft rounded-lg text-primary"><Workflow size={24} /></div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Project Workflow</h2>
-                                <p className="text-sm text-gray-400">
-                                    Customize kanban columns for <span className="text-white font-semibold">{activeProject.name}</span>
-                                </p>
+                                <h2 className="text-xl font-semibold text-ink">Project Workflow</h2>
+                                <p className="text-sm text-muted">Customize kanban columns for <span className="text-ink font-semibold">{activeProject.name}</span></p>
                             </div>
                         </div>
                         <WorkflowEditor
                             workflow={activeProject.workflow ?? DEFAULT_WORKFLOW}
-                            onSave={async (newWorkflow: WorkflowStatus[]) => {
-                                await onUpdateProject(activeProject.id, { workflow: newWorkflow });
-                            }}
+                            onSave={async (newWorkflow: WorkflowStatus[]) => { await onUpdateProject(activeProject.id, { workflow: newWorkflow }); }}
                         />
                     </div>
                 )}
 
-                {/* Account Actions */}
-                <div className="bg-surface border border-border rounded-3xl p-8 shadow-lg animate-slide-up delay-400">
+                {/* Account */}
+                <div className={`${card} animate-slide-up delay-400`}>
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="p-3 bg-red-500/10 rounded-xl text-red-500">
-                            <LogOut size={24} />
-                        </div>
+                        <div className="p-3 bg-error/10 rounded-lg text-error"><LogOut size={24} /></div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Session</h2>
-                            <p className="text-sm text-gray-400">Manage your active session.</p>
+                            <h2 className="text-xl font-semibold text-ink">Session</h2>
+                            <p className="text-sm text-muted">Manage your active session.</p>
                         </div>
                     </div>
-
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 bg-red-500/5 border border-red-500/10 rounded-2xl">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 bg-error/5 border border-error/15 rounded-lg">
                         <div>
-                            <h3 className="font-bold text-white mb-1">Sign Out</h3>
-                            <p className="text-sm text-gray-400">Securely log out of your account. Your data is saved in the cloud.</p>
+                            <h3 className="font-semibold text-ink mb-1">Sign Out</h3>
+                            <p className="text-sm text-muted">Securely log out of your account. Your data is saved in the cloud.</p>
                         </div>
-                        <button
-                            onClick={onClearData}
-                            className="flex items-center gap-2 px-6 py-3 bg-surface-highlight hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold text-sm transition-all hover:scale-105 shadow-lg"
-                        >
+                        <button onClick={onClearData}
+                            className="flex items-center gap-2 px-6 py-3 bg-surface-card hover:bg-error/10 text-error border border-error/25 rounded-md font-medium text-sm transition-all">
                             <LogOut size={18} />
                             Log Out
                         </button>

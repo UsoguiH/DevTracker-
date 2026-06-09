@@ -1,31 +1,42 @@
-import { supabase } from '../src/supabaseClient';
 import { AIAction, Task } from '../types';
 
 /**
- * Real AI Service calling Supabase Edge Function 'ai-architect'.
+ * AI Service — talks to the local Claude Code server (server/ai-server.js),
+ * which runs `claude -p` under your Claude subscription. No API key, no
+ * third-party provider. Start it with `npm run ai-server`.
  */
 
-export async function processUserMessage(message: string, currentTasks: Task[]): Promise<AIAction> {
+export interface ChatTurn { role: 'user' | 'assistant'; text: string; }
+
+export async function processUserMessage(
+    message: string,
+    currentTasks: Task[],
+    model?: string,
+    history?: ChatTurn[],
+): Promise<AIAction> {
     try {
-        const { data, error } = await supabase.functions.invoke('ai-architect', {
-            body: {
+        const res = await fetch('/api/ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 message,
-                currentContext: currentTasks.map(t => ({ title: t.title, priority: t.priority, status: t.status }))
-            }
+                model,
+                history,
+                currentContext: currentTasks.map(t => ({ title: t.title, priority: t.priority, status: t.status })),
+            }),
         });
 
-        if (error) {
-            console.error('Edge Function Error:', error);
-            throw error;
+        if (!res.ok) {
+            throw new Error(`AI server responded ${res.status}`);
         }
 
-        return data as AIAction;
+        return await res.json() as AIAction;
 
     } catch (error) {
         console.error('AI Service Failed:', error);
         return {
             intent: 'NONE',
-            summary: "I'm having trouble connecting to my brain (OpenAI). Please check the Edge Function logs or API keys.",
+            summary: "I can't reach Claude right now. Make sure the local AI server is running — open a terminal and run `npm run ai-server`.",
         };
     }
 }

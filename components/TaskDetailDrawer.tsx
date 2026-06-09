@@ -47,24 +47,24 @@ const SelectDropdown: React.FC<{
 
     return (
         <div className="group relative" ref={ref}>
-            <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500 mb-2">{label}</label>
+            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">{label}</label>
             <div
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-sm text-white cursor-pointer hover:border-primary/50 transition-all duration-300 flex items-center justify-between"
+                className="w-full bg-surface-card border border-hairline-strong rounded-md px-3 py-2 text-sm text-ink cursor-pointer hover:border-primary/50 transition-all duration-300 flex items-center justify-between"
             >
                 <span className={colorMap ? colorMap[value] : ''}>{value}</span>
-                <ChevronDown size={14} className={`text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`text-muted transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 w-full bg-[#1C1C1E] border border-white/10 rounded-xl shadow-2xl z-[60] overflow-hidden animate-pop-in">
+                <div className="absolute top-full left-0 mt-2 w-full bg-surface-card border border-hairline rounded-lg shadow-sm z-[60] overflow-hidden animate-pop-in">
                     <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
                         {options.map(opt => (
                             <button
                                 key={opt}
                                 type="button"
                                 onClick={() => { onChange(opt); setIsOpen(false); }}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${value === opt ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${value === opt ? 'bg-primary/20 text-primary' : 'text-body hover:bg-canvas-soft hover:text-ink'}`}
                             >
                                 <span className={colorMap ? colorMap[opt] : ''}>{opt}</span>
                                 {value === opt && <Check size={14} />}
@@ -95,14 +95,14 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
     <div className="flex items-center gap-2">
         <button
             onClick={() => onDeleteTask(task.id)}
-            className="p-2 hover:bg-red-500/20 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+            className="p-2 hover:bg-error/10 rounded-full text-muted hover:text-error transition-colors"
             title="Delete Task"
         >
             <Trash2 size={20} />
         </button>
         <button
             onClick={onClose}
-            className="p-2 hover:bg-surface-highlight rounded-full text-gray-400 hover:text-white transition-colors"
+            className="p-2 hover:bg-surface-highlight rounded-full text-muted hover:text-ink transition-colors"
         >
             <X size={20} />
         </button>
@@ -331,10 +331,10 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
     const getStatusColor = (status: Status) => {
         switch (status) {
-            case 'To Do': return 'bg-zinc-700 text-zinc-300 border-zinc-600';
-            case 'In Progress': return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-            case 'Testing': return 'bg-secondary/20 text-secondary border-secondary/50';
-            case 'Done': return 'bg-primary/20 text-primary border-primary/50';
+            case 'To Do': return 'bg-surface-strong text-body border-hairline-strong';
+            case 'In Progress': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'Testing': return 'bg-amber-100 text-amber-700 border-amber-200';
+            case 'Done': return 'bg-primary/10 text-primary border-primary/30';
         }
     };
 
@@ -346,19 +346,19 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
         <>
             {/* Backdrop Overlay */}
             <div
-                className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer"
+                className="fixed inset-0 z-[140] bg-ink/40 backdrop-blur-sm animate-fade-in cursor-pointer"
                 onClick={onClose}
                 aria-hidden="true"
             />
 
             {/* Drawer Panel */}
-            <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-[#0A0A0A] border-l border-border shadow-2xl z-[150] animate-slide-in-right">
+            <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-surface-card border-l border-hairline shadow-sm z-[150] animate-slide-in-right">
                 {/* Header */}
-                <div className="h-16 border-b border-border flex items-center justify-between px-6 bg-surface/50 backdrop-blur-md">
+                <div className="h-16 border-b border-border flex items-center justify-between px-6 bg-canvas-soft">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-surface-highlight rounded-full transition-colors text-gray-400 hover:text-white"
+                            className="p-2 hover:bg-canvas-soft rounded-full transition-colors text-muted hover:text-ink"
                         >
                             <ChevronRight size={20} />
                         </button>
@@ -369,14 +369,14 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => onDeleteTask(task.id)}
-                            className="p-2 hover:bg-red-500/20 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                            className="p-2 hover:bg-error/10 rounded-full text-muted hover:text-error transition-colors"
                             title="Delete Task"
                         >
                             <Trash2 size={20} />
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-surface-highlight rounded-full text-gray-400 hover:text-white transition-colors"
+                            className="p-2 hover:bg-surface-highlight rounded-full text-muted hover:text-ink transition-colors"
                         >
                             <X size={20} />
                         </button>
@@ -385,40 +385,40 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                 <div className="flex h-[calc(100vh-64px)]">
                     {/* Left Content Column */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 border-r border-border/50">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 border-r border-hairline">
                         {/* Title */}
                         <input
                             type="text"
                             value={task.title}
                             onChange={(e) => onUpdateTask(task.id, { title: e.target.value })}
-                            className="w-full bg-transparent text-2xl font-bold text-white focus:outline-none mb-6 placeholder-gray-600"
+                            className="w-full bg-transparent text-2xl font-bold text-ink focus:outline-none mb-6 placeholder-muted-soft"
                             placeholder="Task Title"
                         />
 
                         {/* Description */}
                         <div className="mb-8 group">
                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-xs font-bold uppercase text-gray-500">Description</label>
+                                <label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Description</label>
                             </div>
                             {isDescriptionEditing ? (
                                 <div className="space-y-3">
                                     <textarea
                                         value={descriptionDraft}
                                         onChange={(e) => setDescriptionDraft(e.target.value)}
-                                        className="w-full min-h-[120px] bg-surface border border-border rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+                                        className="w-full min-h-[120px] bg-surface-card border border-hairline rounded-md p-4 text-sm text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
                                         placeholder="Add a description..."
                                         autoFocus
                                     />
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => setIsDescriptionEditing(false)}
-                                            className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white transition-colors"
+                                            className="px-3 py-1.5 text-xs font-medium text-muted hover:text-ink transition-colors"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={handleDescriptionSave}
-                                            className="px-3 py-1.5 text-xs font-bold bg-primary text-black rounded-lg hover:bg-primary/90 transition-colors"
+                                            className="px-3 py-1.5 text-xs font-bold bg-primary text-on-primary rounded-md hover:bg-primary-active transition-colors"
                                         >
                                             Save
                                         </button>
@@ -430,9 +430,9 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                         setDescriptionDraft(task.description);
                                         setIsDescriptionEditing(true);
                                     }}
-                                    className="min-h-[60px] p-4 rounded-xl border border-transparent hover:bg-surface hover:border-border cursor-pointer transition-all text-sm text-gray-300 leading-relaxed whitespace-pre-wrap"
+                                    className="min-h-[60px] p-4 rounded-xl border border-transparent hover:bg-canvas-soft hover:border-hairline cursor-pointer transition-all text-sm text-body leading-relaxed whitespace-pre-wrap"
                                 >
-                                    {task.description || <span className="text-gray-600 italic">Click to add description...</span>}
+                                    {task.description || <span className="text-muted-soft italic">Click to add description...</span>}
                                 </div>
                             )}
                         </div>
@@ -441,16 +441,16 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         <div className="mb-8">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
-                                    <CheckSquare size={14} className="text-gray-500" />
-                                    <label className="text-xs font-bold uppercase text-gray-500">Subtasks</label>
+                                    <CheckSquare size={14} className="text-muted" />
+                                    <label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Subtasks</label>
                                 </div>
-                                <span className="text-xs font-medium text-gray-400">
+                                <span className="text-xs font-medium text-muted">
                                     {completedSubtasks}/{totalSubtasks}
                                 </span>
                             </div>
 
                             {/* Progress Bar */}
-                            <div className="h-1.5 w-full bg-surface-highlight rounded-full mb-4 overflow-hidden">
+                            <div className="h-1.5 w-full bg-surface-strong rounded-full mb-4 overflow-hidden">
                                 <div
                                     className="h-full bg-primary transition-all duration-500 ease-out"
                                     style={{ width: `${subtaskProgress}%` }}
@@ -459,19 +459,19 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                             <div className="space-y-1 mb-3">
                                 {(task.subtasks || []).map(st => (
-                                    <div key={st.id} className="group flex items-center gap-3 p-2 hover:bg-surface-highlight rounded-lg transition-colors">
+                                    <div key={st.id} className="group flex items-center gap-3 p-2 hover:bg-canvas-soft rounded-lg transition-colors">
                                         <button
                                             onClick={() => toggleSubtask(st.id)}
-                                            className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform active:scale-75 ${st.completed ? 'bg-primary border-primary text-black scale-100' : 'border-gray-500 hover:border-primary bg-transparent text-transparent hover:scale-110'}`}
+                                            className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform active:scale-75 ${st.completed ? 'bg-primary border-primary text-on-primary scale-100' : 'border-hairline-strong hover:border-primary bg-transparent text-transparent hover:scale-110'}`}
                                         >
                                             <Check size={12} strokeWidth={4} className={`transition-all duration-300 ${st.completed ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
                                         </button>
-                                        <span className={`text-sm flex-1 truncate transition-all ${st.completed ? 'line-through text-gray-600' : 'text-gray-300'}`}>
+                                        <span className={`text-sm flex-1 truncate transition-all ${st.completed ? 'line-through text-muted-soft' : 'text-body'}`}>
                                             {st.title}
                                         </span>
                                         <button
                                             onClick={() => deleteSubtask(st.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 hover:text-red-400 rounded text-gray-500 transition-all"
+                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-error/10 hover:text-error rounded text-muted transition-all"
                                         >
                                             <Trash2 size={12} />
                                         </button>
@@ -498,12 +498,12 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                     onFocus={() => setIsAddingSubtask(true)}
                                     onChange={(e) => setNewSubtaskTitle(e.target.value)}
                                     placeholder="Add a subtask..."
-                                    className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 focus:outline-none py-2"
+                                    className="flex-1 bg-transparent text-sm text-ink placeholder-muted-soft focus:outline-none py-2"
                                 />
                                 {newSubtaskTitle.trim() && (
                                     <button
                                         type="submit"
-                                        className="bg-primary text-black text-xs font-bold px-3 py-1.5 rounded-lg hover:scale-105 transition-all animate-fade-in"
+                                        className="bg-primary text-on-primary text-xs font-bold px-3 py-1.5 rounded-md hover:scale-105 transition-all animate-fade-in"
                                     >
                                         Add
                                     </button>
@@ -516,13 +516,13 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             <div className="flex items-center gap-6 border-b border-border mb-4">
                                 <button
                                     onClick={() => setActiveTab('comments')}
-                                    className={`pb-3 text-xs font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'comments' ? 'border-primary text-white' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                                    className={`pb-3 text-xs font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'comments' ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-body'}`}
                                 >
                                     Comments ({task.comments?.length || 0})
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('activity')}
-                                    className={`pb-3 text-xs font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'activity' ? 'border-primary text-white' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                                    className={`pb-3 text-xs font-bold uppercase tracking-wide border-b-2 transition-colors ${activeTab === 'activity' ? 'border-primary text-ink' : 'border-transparent text-muted hover:text-body'}`}
                                 >
                                     Activity
                                 </button>
@@ -533,7 +533,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                     <div className="space-y-4">
                                         <div className="space-y-4 mb-6">
                                             {task.comments?.length === 0 && (
-                                                <div className="text-center py-8 text-gray-600 text-sm">
+                                                <div className="text-center py-8 text-muted text-sm">
                                                     No comments yet. Start the discussion!
                                                 </div>
                                             )}
@@ -541,12 +541,12 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                                 const isMe = comment.userId === currentUser.id;
                                                 return (
                                                     <div key={comment.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-                                                        <div className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center shrink-0 border border-border">
-                                                            <UserIcon size={14} className="text-gray-400" />
+                                                        <div className="w-8 h-8 rounded-full bg-surface-strong flex items-center justify-center shrink-0 border border-hairline">
+                                                            <UserIcon size={14} className="text-muted" />
                                                         </div>
-                                                        <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${isMe ? 'bg-primary text-black rounded-tr-none' : 'bg-surface-highlight text-gray-200 rounded-tl-none'}`}>
+                                                        <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${isMe ? 'bg-primary text-on-primary rounded-tr-none' : 'bg-surface-strong text-ink rounded-tl-none'}`}>
                                                             <p>{comment.text}</p>
-                                                            <p className={`text-[10px] mt-1 ${isMe ? 'text-black/60' : 'text-gray-500'}`}>
+                                                            <p className={`text-[10px] mt-1 ${isMe ? 'text-on-primary/70' : 'text-muted'}`}>
                                                                 {formatDate(comment.createdAt)}
                                                             </p>
                                                         </div>
@@ -562,33 +562,33 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                                 value={newComment}
                                                 onChange={(e) => setNewComment(e.target.value)}
                                                 placeholder="Write a comment..."
-                                                className="w-full bg-surface border border-border rounded-full pl-4 pr-12 py-3 text-sm text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-lg"
+                                                className="w-full bg-surface-card border border-hairline-strong rounded-full pl-4 pr-12 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-lg"
                                             />
                                             <button
                                                 type="submit"
                                                 disabled={!newComment.trim()}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-primary text-black rounded-full hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all"
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-primary text-on-primary rounded-full hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all"
                                             >
                                                 <Send size={14} />
                                             </button>
                                         </form>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 relative pl-4 border-l border-border/30 ml-2 py-2">
+                                    <div className="space-y-4 relative pl-4 border-l border-hairline ml-2 py-2">
                                         {task.activity?.slice().reverse().map(act => (
                                             <div key={act.id} className="relative mb-6 last:mb-0">
-                                                <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-surface border border-border"></div>
+                                                <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-surface-card border border-hairline"></div>
                                                 <div className="text-sm">
-                                                    <span className="font-bold text-gray-300">
+                                                    <span className="font-bold text-body">
                                                         {act.userId === currentUser.id ? 'You' : 'System'}
                                                     </span>
-                                                    <span className="text-gray-500 mx-1">{act.description}</span>
-                                                    <div className="text-[10px] text-gray-600 mt-0.5">{formatDate(act.createdAt)}</div>
+                                                    <span className="text-muted mx-1">{act.description}</span>
+                                                    <div className="text-[10px] text-muted-soft mt-0.5">{formatDate(act.createdAt)}</div>
                                                 </div>
                                             </div>
                                         ))}
                                         {(!task.activity || task.activity.length === 0) && (
-                                            <p className="text-sm text-gray-500 italic">No activity recorded yet.</p>
+                                            <p className="text-sm text-muted italic">No activity recorded yet.</p>
                                         )}
                                     </div>
                                 )}
@@ -597,17 +597,17 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                     </div>
 
                     {/* Right Sidebar Metadata */}
-                    <div className="w-64 bg-surface/30 p-6 border-l border-border/50 space-y-8 overflow-y-auto">
+                    <div className="w-64 bg-canvas-soft p-6 border-l border-hairline space-y-8 overflow-y-auto">
                         {/* Properties */}
                         <div className="space-y-4">
 
                             {/* Progress Slider (Improved iOS Style) */}
-                            <div className="group bg-black/20 p-4 rounded-xl border border-white/5">
-                                <div className="flex items-center justify-between mb-3 text-gray-400">
+                            <div className="group bg-canvas-soft p-4 rounded-lg border border-hairline">
+                                <div className="flex items-center justify-between mb-3 text-muted">
                                     <label className="flex items-center gap-2 text-xs font-bold uppercase">
                                         <Percent size={14} /> Progress
                                     </label>
-                                    <span className="text-xl font-bold text-white tracking-tight">{task.progress || 0}%</span>
+                                    <span className="text-xl font-bold text-ink tracking-tight">{task.progress || 0}%</span>
                                 </div>
                                 <div className="relative h-6 flex items-center">
                                     {/* Input Range (Invisible but clickable) */}
@@ -621,7 +621,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                                     />
                                     {/* Visual Track Background */}
-                                    <div className="w-full h-2 bg-surface-highlight rounded-full overflow-hidden">
+                                    <div className="w-full h-2 bg-surface-strong rounded-full overflow-hidden">
                                         {/* Visual Track Fill */}
                                         <div
                                             className="h-full bg-primary transition-all duration-300 ease-out"
@@ -637,14 +637,14 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             </div>
 
                             <div className="group">
-                                <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500 mb-2">
+                                <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">
                                     <Clock size={14} /> Estimated Time
                                 </label>
                                 <input
                                     type="text"
                                     value={task.estimatedTime}
                                     onChange={(e) => onUpdateTask(task.id, { estimatedTime: e.target.value })}
-                                    className="w-full bg-background/50 border border-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                                    className="w-full bg-surface-card border border-hairline-strong rounded-md px-3 py-2 text-sm text-ink focus:outline-none focus:border-primary"
                                 />
                             </div>
 
@@ -684,15 +684,15 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                     options={['High', 'Medium', 'Low']}
                                     onChange={(val) => onUpdateTask(task.id, { priority: val as Priority })}
                                     colorMap={{
-                                        'High': 'text-red-400',
-                                        'Medium': 'text-orange-400',
-                                        'Low': 'text-green-400'
+                                        'High': 'text-primary',
+                                        'Medium': 'text-amber-600',
+                                        'Low': 'text-emerald-600'
                                     }}
                                 />
                             </div>
 
                             <div className="group relative" ref={assigneeMenuRef}>
-                                <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500 mb-2">
+                                <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">
                                     <UserIcon size={14} /> Assignees
                                 </label>
 
@@ -701,22 +701,22 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                     onClick={() => setIsAssigneeMenuOpen(!isAssigneeMenuOpen)}
                                 >
                                     {(task.assignees || []).map((assignee, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 bg-surface p-1 pr-3 rounded-full border border-border">
+                                        <div key={idx} className="flex items-center gap-2 bg-canvas-soft p-1 pr-3 rounded-full border border-hairline">
                                             <img
                                                 src={assignee.avatar}
                                                 alt={assignee.name}
-                                                className="w-6 h-6 rounded-full bg-background object-cover"
+                                                className="w-6 h-6 rounded-full bg-surface-strong object-cover"
                                             />
-                                            <span className="text-xs font-bold text-gray-300">{assignee.name}</span>
+                                            <span className="text-xs font-bold text-body">{assignee.name}</span>
                                         </div>
                                     ))}
                                     {(task.assignees || []).length === 0 && (
-                                        <div className="w-6 h-6 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-500">
+                                        <div className="w-6 h-6 rounded-full border border-dashed border-hairline-strong flex items-center justify-center text-muted">
                                             <Plus size={12} />
                                         </div>
                                     )}
                                     {(task.assignees || []).length > 0 && (
-                                        <div className="w-6 h-6 rounded-full border border-dashed border-gray-600 flex items-center justify-center text-gray-500 hover:text-white hover:border-white transition-colors">
+                                        <div className="w-6 h-6 rounded-full border border-dashed border-hairline-strong flex items-center justify-center text-muted hover:text-ink hover:border-ink transition-colors">
                                             <Plus size={12} />
                                         </div>
                                     )}
@@ -724,7 +724,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
                                 {/* Custom Assignee Dropdown */}
                                 {isAssigneeMenuOpen && (
-                                    <div className="absolute top-full left-0 mt-2 w-56 bg-[#1C1C1E] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-pop-in">
+                                    <div className="absolute top-full left-0 mt-2 w-56 bg-surface-card border border-hairline rounded-lg shadow-sm z-50 overflow-hidden animate-pop-in">
                                         <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
                                             {allUsers.map(userItem => {
                                                 const isSelected = (task.assignees || []).some(u => u.id === userItem.id);
@@ -732,9 +732,9 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                                     <button
                                                         key={userItem.id}
                                                         onClick={() => toggleAssignee(userItem)}
-                                                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                                                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'bg-primary/20 text-primary' : 'text-body hover:bg-canvas-soft hover:text-ink'}`}
                                                     >
-                                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform ${isSelected ? 'border-primary bg-primary text-black scale-100' : 'border-gray-500 hover:border-primary bg-transparent text-transparent hover:scale-110'}`}>
+                                                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-300 transform ${isSelected ? 'border-primary bg-primary text-black scale-100' : 'border-hairline-strong hover:border-primary bg-transparent text-transparent hover:scale-110'}`}>
                                                             <Check size={12} strokeWidth={4} className={`transition-all duration-300 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
                                                         </div>
                                                         <img src={userItem.avatar} className="w-6 h-6 rounded-full object-cover" />
@@ -749,26 +749,26 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         </div>
 
                         {/* Dates Section */}
-                        <div className="space-y-4 pt-4 border-t border-border/50">
-                            <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500">
+                        <div className="space-y-4 pt-4 border-t border-hairline">
+                            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                                 <CalendarIcon size={14} /> Timeline
                             </label>
                             <div className="space-y-4">
                                 <div className="group relative">
-                                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1.5 transition-colors group-focus-within:text-primary">Start Date</label>
+                                    <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-1.5 transition-colors group-focus-within:text-primary">Start Date</label>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <button
                                                 className={cn(
-                                                    "w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-white text-left focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-[0_0_20px_rgba(209,244,95,0.3)] transition-all duration-300 hover:border-primary/70 hover:shadow-[0_0_15px_rgba(209,244,95,0.15)] relative z-0 group/input transform hover:scale-[1.02]",
+                                                    "w-full bg-surface-card border border-hairline-strong rounded-md pl-10 pr-4 py-2.5 text-xs font-bold text-ink text-left focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300 hover:border-primary/70 relative z-0 group/input transform hover:scale-[1.02]",
                                                     !task.startDate && "text-muted-foreground"
                                                 )}
                                             >
-                                                <PlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 transition-all duration-300 group-hover/input:text-primary group-hover/input:scale-110 z-10 pointer-events-none" size={14} />
+                                                <PlayCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-muted transition-all duration-300 group-hover/input:text-primary group-hover/input:scale-110 z-10 pointer-events-none" size={14} />
                                                 {task.startDate ? format(parseISO(task.startDate), "PPP") : <span>Pick a date</span>}
                                             </button>
                                         </PopoverTrigger>
-                                        <PopoverContent disablePortal={true} className="w-auto p-0 bg-[#0A0A0A] border-border text-white z-[9999] pointer-events-auto" align="start">
+                                        <PopoverContent disablePortal={true} className="w-auto p-0 bg-surface-card border-hairline text-ink z-[9999] pointer-events-auto" align="start">
                                             <Calendar
                                                 mode="range"
                                                 selected={{
@@ -782,39 +782,39 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                                 }}
                                                 initialFocus
                                                 defaultMonth={task.startDate ? parseISO(task.startDate) : new Date()}
-                                                className="bg-[#0A0A0A] text-white rounded-md border border-border"
+                                                className="bg-surface-card text-ink rounded-md border border-hairline"
                                             />
                                         </PopoverContent>
                                     </Popover>
                                 </div>
                                 <div className="group relative">
-                                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1.5 transition-colors group-focus-within:text-primary">Duration (Days)</label>
+                                    <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-1.5 transition-colors group-focus-within:text-primary">Duration (Days)</label>
                                     <div className="relative transform transition-all duration-300 hover:scale-[1.02] group/input">
-                                        <Hourglass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 transition-all duration-300 group-hover/input:text-primary group-hover/input:rotate-180 z-10 pointer-events-none" size={14} />
+                                        <Hourglass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted transition-all duration-300 group-hover/input:text-primary group-hover/input:rotate-180 z-10 pointer-events-none" size={14} />
                                         <input
                                             type="number"
                                             min="1"
                                             value={task.durationDays || 1}
                                             onChange={(e) => handleDurationChange(parseInt(e.target.value) || 1)}
-                                            className="w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-[0_0_20px_rgba(209,244,95,0.3)] transition-all duration-300 hover:border-primary/70 hover:shadow-[0_0_15px_rgba(209,244,95,0.15)]"
+                                            className="w-full bg-surface-card border border-hairline-strong rounded-md pl-10 pr-4 py-2.5 text-xs font-bold text-ink focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300 hover:border-primary/70"
                                         />
                                     </div>
                                 </div>
                                 <div className="group relative">
-                                    <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1.5 transition-colors group-focus-within:text-primary">End Date</label>
+                                    <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted mb-1.5 transition-colors group-focus-within:text-primary">End Date</label>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <button
                                                 className={cn(
-                                                    "w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold text-white text-left focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary focus:shadow-[0_0_20px_rgba(209,244,95,0.3)] transition-all duration-300 hover:border-primary/70 hover:shadow-[0_0_15px_rgba(209,244,95,0.15)] relative z-0 group/input transform hover:scale-[1.02]",
+                                                    "w-full bg-surface-card border border-hairline-strong rounded-md pl-10 pr-4 py-2.5 text-xs font-bold text-ink text-left focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300 hover:border-primary/70 relative z-0 group/input transform hover:scale-[1.02]",
                                                     !task.endDate && "text-muted-foreground"
                                                 )}
                                             >
-                                                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 transition-all duration-300 group-hover/input:text-primary group-hover/input:scale-110 z-10 pointer-events-none" size={14} />
+                                                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-muted transition-all duration-300 group-hover/input:text-primary group-hover/input:scale-110 z-10 pointer-events-none" size={14} />
                                                 {task.endDate ? format(parseISO(task.endDate), "PPP") : <span>Pick a date</span>}
                                             </button>
                                         </PopoverTrigger>
-                                        <PopoverContent disablePortal={true} className="w-auto p-0 bg-[#0A0A0A] border-border text-white z-[9999] pointer-events-auto" align="start">
+                                        <PopoverContent disablePortal={true} className="w-auto p-0 bg-surface-card border-hairline text-ink z-[9999] pointer-events-auto" align="start">
                                             <Calendar
                                                 mode="range"
                                                 selected={{
@@ -828,7 +828,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                                 }}
                                                 initialFocus
                                                 defaultMonth={task.endDate ? parseISO(task.endDate) : undefined}
-                                                className="bg-[#0A0A0A] text-white rounded-md border border-border"
+                                                className="bg-surface-card text-ink rounded-md border border-hairline"
                                             />
                                         </PopoverContent>
                                     </Popover>
@@ -837,14 +837,14 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                         </div>
 
                         {/* Tags Section */}
-                        <div className="pt-4 border-t border-border/50">
+                        <div className="pt-4 border-t border-hairline">
                             <div className="flex items-center justify-between mb-3">
-                                <label className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500">
+                                <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                                     <Tag size={14} /> Tags
                                 </label>
                                 <button
                                     onClick={() => setIsAddingTag(!isAddingTag)}
-                                    className="text-primary hover:text-white transition-colors"
+                                    className="text-primary hover:text-primary-active transition-colors"
                                 >
                                     <Plus size={14} />
                                 </button>
@@ -854,7 +854,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                 {(task.tags || []).map((tag, i) => (
                                     <span key={i} className={`text-xs px-2 py-1 rounded border flex items-center gap-1 group/tag cursor-default ${tag.color}`}>
                                         {tag.name}
-                                        <button onClick={() => handleRemoveTag(i)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500 transition-opacity">
+                                        <button onClick={() => handleRemoveTag(i)} className="opacity-0 group-hover/tag:opacity-100 hover:text-error transition-opacity">
                                             <X size={10} />
                                         </button>
                                     </span>
@@ -862,7 +862,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                             </div>
 
                             {isAddingTag && (
-                                <div className="mt-3 bg-background/50 p-3 rounded-xl border border-border animate-fade-in">
+                                <div className="mt-3 bg-canvas-soft p-3 rounded-lg border border-hairline animate-fade-in">
                                     <input
                                         ref={tagInputRef}
                                         type="text"
@@ -870,7 +870,7 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                         onChange={(e) => setNewTag(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
                                         placeholder="Tag name..."
-                                        className="w-full bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none mb-2"
+                                        className="w-full bg-transparent text-xs text-ink placeholder-muted-soft focus:outline-none mb-2"
                                     />
                                     <div className="flex gap-2 mb-3">
                                         {TAG_COLORS.map((color, idx) => (
@@ -882,8 +882,8 @@ const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                                         ))}
                                     </div>
                                     <div className="flex justify-end gap-2">
-                                        <button onClick={() => setIsAddingTag(false)} className="text-[10px] text-gray-500 hover:text-white">Cancel</button>
-                                        <button onClick={handleAddTag} className="text-[10px] bg-primary text-black px-2 py-1 rounded font-bold">Add</button>
+                                        <button onClick={() => setIsAddingTag(false)} className="text-[10px] text-muted hover:text-ink">Cancel</button>
+                                        <button onClick={handleAddTag} className="text-[10px] bg-primary text-on-primary px-2 py-1 rounded font-bold">Add</button>
                                     </div>
                                 </div>
                             )}

@@ -660,6 +660,24 @@ const App: React.FC = () => {
       }
     }
 
+    // 3. Update existing tasks — move status / change priority
+    if (action.intent === 'UPDATE_TASKS' && action.payload && Array.isArray(action.payload.updates)) {
+      action.payload.updates.forEach((u: any) => {
+        const m = (u.match || '').toLowerCase().trim();
+        if (!m) return;
+        // Match by exact title, then substring either direction.
+        const target =
+          projectTasks.find(t => t.title.toLowerCase() === m) ||
+          projectTasks.find(t => t.title.toLowerCase().includes(m)) ||
+          projectTasks.find(t => m.includes(t.title.toLowerCase()));
+        if (!target) return;
+        const updates: Partial<Task> = {};
+        if (u.status) updates.status = u.status;
+        if (u.priority) updates.priority = u.priority;
+        if (Object.keys(updates).length) handleUpdateTask(target.id, updates);
+      });
+    }
+
     if (action.intent === 'FILTER_VIEW' && action.payload && action.payload.filter) {
       setAiFilter(action.payload.filter);
       setActiveTab('dashboard');

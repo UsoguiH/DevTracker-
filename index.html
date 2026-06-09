@@ -1,27 +1,56 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DevTrack</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
   <script>
     tailwind.config = {
-      darkMode: "class",
       theme: {
         extend: {
           colors: {
-            primary: "#D1F45F",
-            secondary: "#FF9F45",
-            background: "#050505",
-            surface: "#121212",
-            "surface-highlight": "#1E1E1E",
-            border: "#262626",
+            // ── Cursor-style editorial system ──────────────────────────
+            primary: "#f54e00",            // Cursor Orange — scarce CTA / accent
+            "primary-active": "#d04200",
+            "on-primary": "#ffffff",
+            canvas: "#f7f7f4",             // warm cream page floor
+            "canvas-soft": "#fafaf7",
+            "surface-card": "#ffffff",
+            "surface-strong": "#e6e5e0",
+            hairline: "#e6e5e0",
+            "hairline-soft": "#efeee8",
+            "hairline-strong": "#cfcdc4",
+            ink: "#26251e",                // warm near-black
+            body: "#5a5852",
+            muted: "#807d72",
+            "muted-soft": "#a09c92",
+            // AI-timeline pastels (signature — in-product agent stages)
+            "tl-thinking": "#dfa88f",
+            "tl-grep": "#9fc9a2",
+            "tl-read": "#9fbbe0",
+            "tl-edit": "#c0a8dd",
+            "tl-done": "#c08532",
+            success: "#1f8a65",
+            error: "#cf2d56",
+            // ── Legacy token names remapped to the new palette so existing
+            //    components shift toward the editorial look automatically ──
+            secondary: "#f54e00",
+            background: "#f7f7f4",
+            surface: "#ffffff",
+            "surface-highlight": "#efeee8",
+            border: "#e6e5e0",
           },
           fontFamily: {
-            sans: ["Inter", "sans-serif"],
+            sans: ["Inter", "system-ui", "Helvetica Neue", "Arial", "sans-serif"],
+            mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+          },
+          borderRadius: {
+            xs: "4px", sm: "6px", md: "8px", lg: "12px", xl: "16px",
           },
           animation: {
             'fade-in': 'fadeIn 0.6s cubic-bezier(0.32, 0.72, 0, 1) forwards',
@@ -37,277 +66,38 @@
   </script>
   <style>
     body {
-      background-color: #050505;
-      color: #ffffff;
+      background-color: #f7f7f4;
+      color: #26251e;
+      font-family: "Inter", system-ui, sans-serif;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
     }
 
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #f7f7f4; }
+    ::-webkit-scrollbar-thumb { background: #cfcdc4; border-radius: 9999px; border: 2px solid #f7f7f4; }
+    ::-webkit-scrollbar-thumb:hover { background: #a09c92; }
 
-    ::-webkit-scrollbar-track {
-      background: #050505;
-    }
+    /* Editorial display utility — magazine voice, never bold */
+    .display { font-weight: 400; letter-spacing: -0.03em; }
 
-    ::-webkit-scrollbar-thumb {
-      background: #262626;
-      border-radius: 4px;
-    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes waterFlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    @keyframes shimmer { 0% { transform: translateX(-150%) skewX(-20deg); } 100% { transform: translateX(200%) skewX(-20deg); } }
 
-    ::-webkit-scrollbar-thumb:hover {
-      background: #404040;
-    }
+    .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+    .animate-slide-up { animation: slideUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+    .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .animate-slide-in-right { animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-    /* Apple-like Smooth Animations */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes popIn {
-      from {
-        opacity: 0;
-        transform: scale(0.95) translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-
-    @keyframes slideInRight {
-      from {
-        opacity: 0;
-        transform: translateX(100%);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    @keyframes waterFlow {
-      0% {
-        background-position: 0% 50%;
-      }
-
-      50% {
-        background-position: 100% 50%;
-      }
-
-      100% {
-        background-position: 0% 50%;
-      }
-    }
-
-    @keyframes shimmer {
-      0% {
-        transform: translateX(-150%) skewX(-20deg);
-      }
-
-      100% {
-        transform: translateX(200%) skewX(-20deg);
-      }
-    }
-
-    @keyframes fadeSlideIn {
-      to {
-        opacity: 1;
-        filter: blur(0px);
-        transform: translateY(0px);
-      }
-    }
-
-    @keyframes slideRightIn {
-      to {
-        opacity: 1;
-        filter: blur(0px);
-        transform: translateX(0px);
-      }
-    }
-
-    @keyframes testimonialIn {
-      to {
-        opacity: 1;
-        filter: blur(0px);
-        transform: translateY(0px) scale(1);
-      }
-    }
-
-    /* Utility classes for delays */
-    .delay-100 {
-      animation-delay: 100ms;
-      opacity: 0;
-      animation-fill-mode: forwards;
-    }
-
-    .delay-200 {
-      animation-delay: 200ms;
-      opacity: 0;
-      animation-fill-mode: forwards;
-    }
-
-    .delay-300 {
-      animation-delay: 300ms;
-      opacity: 0;
-      animation-fill-mode: forwards;
-    }
-
-    .delay-400 {
-      animation-delay: 400ms;
-      opacity: 0;
-      animation-fill-mode: forwards;
-    }
-
-    .delay-500 {
-      animation-delay: 500ms;
-      opacity: 0;
-      animation-fill-mode: forwards;
-    }
-
-    /* Base animation classes */
-    .animate-fade-in {
-      animation: fadeIn 0.6s cubic-bezier(0.32, 0.72, 0, 1) forwards;
-    }
-
-    .animate-slide-up {
-      animation: slideUp 0.8s cubic-bezier(0.32, 0.72, 0, 1) forwards;
-    }
-
-    .animate-pop-in {
-      animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    .animate-slide-in-right {
-      animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-
-    @keyframes fadeSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-        filter: blur(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-        filter: blur(0px);
-      }
-    }
-
-    @keyframes slideRightIn {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-        filter: blur(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-        filter: blur(0px);
-      }
-    }
-
-    @keyframes testimonialIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-        filter: blur(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0px);
-      }
-    }
-
-    /* Animation Utility Classes */
-    .animate-element {
-      animation: fadeSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-    }
-
-    .animate-slide-right {
-      animation: slideRightIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-    }
-
-    .animate-testimonial {
-      animation: testimonialIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0;
-    }
-
-    .animate-delay-100 {
-      animation-delay: 100ms;
-    }
-
-    .animate-delay-200 {
-      animation-delay: 200ms;
-    }
-
-    .animate-delay-300 {
-      animation-delay: 300ms;
-    }
-
-    .animate-delay-400 {
-      animation-delay: 400ms;
-    }
-
-    .animate-delay-500 {
-      animation-delay: 500ms;
-    }
-
-    .animate-delay-600 {
-      animation-delay: 600ms;
-    }
-
-    .animate-delay-700 {
-      animation-delay: 700ms;
-    }
-
-    .animate-delay-800 {
-      animation-delay: 800ms;
-    }
-
-    .animate-delay-900 {
-      animation-delay: 900ms;
-    }
-
-    .animate-delay-1000 {
-      animation-delay: 1000ms;
-    }
-
-    .animate-delay-1200 {
-      animation-delay: 1200ms;
-    }
-
-    .animate-delay-1400 {
-      animation-delay: 1400ms;
-    }
+    .delay-100 { animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards; }
+    .delay-200 { animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards; }
+    .delay-300 { animation-delay: 300ms; opacity: 0; animation-fill-mode: forwards; }
+    .delay-400 { animation-delay: 400ms; opacity: 0; animation-fill-mode: forwards; }
+    .delay-500 { animation-delay: 500ms; opacity: 0; animation-fill-mode: forwards; }
   </style>
 </head>
 

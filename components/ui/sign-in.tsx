@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
+import { gsap } from 'gsap';
 import { Eye, EyeOff, User, AtSign } from 'lucide-react';
 
 // --- HELPER COMPONENTS (ICONS) ---
@@ -12,6 +13,14 @@ const GoogleIcon = () => (
     </svg>
 );
 
+const BrandMark = () => (
+    <div className="flex items-center gap-2.5">
+        <span className="w-7 h-7 rounded-md bg-primary inline-flex items-center justify-center">
+            <span className="w-2.5 h-2.5 rounded-[3px] bg-on-primary" />
+        </span>
+        <span className="text-[16px] font-semibold tracking-tight text-ink">DevTracker</span>
+    </div>
+);
 
 // --- TYPE DEFINITIONS ---
 
@@ -42,30 +51,71 @@ interface SignUpPageProps {
     loading?: boolean;
 }
 
+// --- SHARED HOOK: GSAP entrance, reusing the existing element markers ---
+
+const useEntrance = () => {
+    const root = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from('.animate-element', { y: 18, opacity: 0, duration: 0.6, stagger: 0.07, ease: 'power3.out' });
+            gsap.from('.gs-hero', { xPercent: 6, opacity: 0, duration: 0.9, ease: 'power3.out' });
+            gsap.from('.animate-testimonial', { y: 22, opacity: 0, duration: 0.6, stagger: 0.15, delay: 0.55, ease: 'power3.out' });
+        }, root);
+        return () => ctx.revert();
+    }, []);
+    return root;
+};
+
 // --- SUB-COMPONENTS ---
 
-const GlassInputWrapper = ({ children }: { children: React.ReactNode }) => (
-    <div className="rounded-2xl border border-border bg-foreground/5 backdrop-blur-sm transition-colors focus-within:border-primary/70 focus-within:bg-primary/10">
+const InputWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div className="mt-1.5 rounded-md border border-hairline-strong bg-surface-card transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
         {children}
     </div>
 );
 
+const labelCls = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-muted';
+const inputCls = 'w-full bg-transparent text-[15px] p-3.5 rounded-md focus:outline-none text-ink placeholder-muted-soft';
+
 const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, delay: string }) => (
-    <div className={`animate-testimonial ${delay} flex items-start gap-3 rounded-3xl bg-card/40 dark:bg-zinc-800/40 backdrop-blur-xl border border-white/10 p-5 w-64`}>
-        <img src={testimonial.avatarSrc} className="h-10 w-10 object-cover rounded-2xl" alt="avatar" />
+    <div className={`animate-testimonial ${delay} flex items-start gap-3 rounded-lg bg-surface-card border border-hairline p-5 w-64`}>
+        <img src={testimonial.avatarSrc} className="h-10 w-10 object-cover rounded-md" alt="avatar" />
         <div className="text-sm leading-snug">
-            <p className="flex items-center gap-1 font-medium text-white">{testimonial.name}</p>
-            <p className="text-gray-400">{testimonial.handle}</p>
-            <p className="mt-1 text-white/80">{testimonial.text}</p>
+            <p className="font-semibold text-ink">{testimonial.name}</p>
+            <p className="text-muted">{testimonial.handle}</p>
+            <p className="mt-1 text-body">{testimonial.text}</p>
         </div>
     </div>
 );
 
+const HeroPanel = ({ heroImageSrc, testimonials }: { heroImageSrc?: string; testimonials: Testimonial[] }) => {
+    if (!heroImageSrc) return null;
+    return (
+        <section className="hidden md:block flex-1 relative p-4">
+            <div className="gs-hero absolute inset-4 rounded-lg overflow-hidden border border-hairline">
+                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroImageSrc})` }} />
+                {/* warm cream wash so the photo sits in the editorial palette */}
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/45 via-ink/10 to-transparent" />
+                <div className="absolute top-6 left-6 rounded-md bg-canvas/90 backdrop-blur px-3 py-1.5 border border-hairline">
+                    <BrandMark />
+                </div>
+            </div>
+            {testimonials.length > 0 && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">
+                    <TestimonialCard testimonial={testimonials[0]} delay="" />
+                    {testimonials[1] && <div className="hidden xl:flex"><TestimonialCard testimonial={testimonials[1]} delay="" /></div>}
+                    {testimonials[2] && <div className="hidden 2xl:flex"><TestimonialCard testimonial={testimonials[2]} delay="" /></div>}
+                </div>
+            )}
+        </section>
+    );
+};
+
 // --- MAIN COMPONENT ---
 
 export const SignInPage: React.FC<SignInPageProps> = ({
-    title = <span className="font-light text-white tracking-tighter">Welcome</span>,
-    description = "Access your account and continue your journey with us",
+    title = <span className="display text-ink">Welcome back</span>,
+    description = "Sign in to your workspace and keep shipping.",
     heroImageSrc,
     testimonials = [],
     onSignIn,
@@ -74,79 +124,69 @@ export const SignInPage: React.FC<SignInPageProps> = ({
     onCreateAccount,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
+    const root = useEntrance();
 
     return (
-        <div className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw] bg-black text-white">
+        <div ref={root} className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw] bg-canvas text-ink">
             {/* Left column: sign-in form */}
             <section className="flex-1 flex items-center justify-center p-8">
                 <div className="w-full max-w-md">
-                    <div className="flex flex-col gap-6">
-                        <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
-                        <p className="animate-element animate-delay-200 text-gray-400">{description}</p>
+                    <div className="animate-element mb-10"><BrandMark /></div>
+                    <div className="flex flex-col gap-5">
+                        <h1 className="animate-element text-[34px] md:text-[40px] leading-tight">{title}</h1>
+                        <p className="animate-element text-body -mt-2">{description}</p>
 
-                        <form className="space-y-5" onSubmit={onSignIn}>
-                            <div className="animate-element animate-delay-300">
-                                <label className="text-sm font-medium text-gray-400">Email Address</label>
-                                <GlassInputWrapper>
-                                    <input name="email" type="email" placeholder="Enter your email address" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
-                                </GlassInputWrapper>
+                        <form className="space-y-4 mt-2" onSubmit={onSignIn}>
+                            <div className="animate-element">
+                                <label className={labelCls}>Email Address</label>
+                                <InputWrapper>
+                                    <input name="email" type="email" placeholder="you@company.com" className={inputCls} />
+                                </InputWrapper>
                             </div>
 
-                            <div className="animate-element animate-delay-400">
-                                <label className="text-sm font-medium text-gray-400">Password</label>
-                                <GlassInputWrapper>
+                            <div className="animate-element">
+                                <label className={labelCls}>Password</label>
+                                <InputWrapper>
                                     <div className="relative">
-                                        <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" className={inputCls + ' pr-12'} />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
-                                            {showPassword ? <EyeOff className="w-5 h-5 text-gray-400 hover:text-white transition-colors" /> : <Eye className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />}
+                                            {showPassword ? <EyeOff className="w-5 h-5 text-muted hover:text-ink transition-colors" /> : <Eye className="w-5 h-5 text-muted hover:text-ink transition-colors" />}
                                         </button>
                                     </div>
-                                </GlassInputWrapper>
+                                </InputWrapper>
                             </div>
 
-                            <div className="animate-element animate-delay-500 flex items-center justify-between text-sm">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" name="rememberMe" className="accent-primary w-4 h-4 rounded border-gray-600 bg-gray-700" />
-                                    <span className="text-gray-300">Keep me signed in</span>
+                            <div className="animate-element flex items-center justify-between text-sm">
+                                <label className="flex items-center gap-2.5 cursor-pointer">
+                                    <input type="checkbox" name="rememberMe" className="accent-primary w-4 h-4 rounded border-hairline-strong" />
+                                    <span className="text-body">Keep me signed in</span>
                                 </label>
-                                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-primary transition-colors">Reset password</a>
+                                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-primary font-medium transition-colors">Reset password</a>
                             </div>
 
-                            <button type="submit" className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-black hover:bg-primary/90 transition-colors">
+                            <button type="submit" className="animate-element w-full rounded-2xl bg-primary py-4 font-medium text-on-primary hover:bg-primary-active transition-colors">
                                 Sign In
                             </button>
                         </form>
 
-                        <div className="animate-element animate-delay-700 relative flex items-center justify-center">
-                            <span className="w-full border-t border-border"></span>
-                            <span className="px-4 text-sm text-gray-500 bg-black absolute">Or continue with</span>
+                        <div className="animate-element relative flex items-center justify-center my-1">
+                            <span className="w-full border-t border-hairline"></span>
+                            <span className="px-4 text-[11px] uppercase tracking-[0.08em] text-muted-soft bg-canvas absolute">Or continue with</span>
                         </div>
 
-                        <button onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-surface-highlight transition-colors text-white">
+                        <button onClick={onGoogleSignIn} className="animate-element w-full flex items-center justify-center gap-3 border border-hairline-strong rounded-2xl py-4 hover:bg-canvas-soft transition-colors text-ink font-medium">
                             <GoogleIcon />
                             Continue with Google
                         </button>
 
-                        <p className="animate-element animate-delay-900 text-center text-sm text-gray-400">
-                            New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-primary hover:underline transition-colors">Create Account</a>
+                        <p className="animate-element text-center text-sm text-muted">
+                            New to DevTracker? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-primary font-medium hover:underline transition-colors">Create Account</a>
                         </p>
                     </div>
                 </div>
             </section>
 
-            {/* Right column: hero image + testimonials */}
-            {heroImageSrc && (
-                <section className="hidden md:block flex-1 relative p-4">
-                    <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center" style={{ backgroundImage: `url(${heroImageSrc})` }}></div>
-                    {testimonials.length > 0 && (
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">
-                            <TestimonialCard testimonial={testimonials[0]} delay="animate-delay-1000" />
-                            {testimonials[1] && <div className="hidden xl:flex"><TestimonialCard testimonial={testimonials[1]} delay="animate-delay-1200" /></div>}
-                            {testimonials[2] && <div className="hidden 2xl:flex"><TestimonialCard testimonial={testimonials[2]} delay="animate-delay-1400" /></div>}
-                        </div>
-                    )}
-                </section>
-            )}
+            <HeroPanel heroImageSrc={heroImageSrc} testimonials={testimonials} />
         </div>
     );
 };
@@ -163,111 +203,95 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const root = useEntrance();
 
     return (
-        <div className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw] bg-black text-white">
+        <div ref={root} className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw] bg-canvas text-ink">
             {/* Left column: sign-up form */}
             <section className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
                 <div className="w-full max-w-md py-8">
-                    <div className="flex flex-col gap-5">
+                    <div className="animate-element mb-8"><BrandMark /></div>
+                    <div className="flex flex-col gap-4">
                         <div>
-                            <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">
-                                <span className="font-light text-white tracking-tighter">Create Account</span>
-                            </h1>
-                            <p className="animate-element animate-delay-200 text-gray-400 mt-2">Join DevTracker and start shipping faster</p>
+                            <h1 className="animate-element text-[34px] md:text-[40px] leading-tight display text-ink">Create account</h1>
+                            <p className="animate-element text-body mt-2">Join DevTracker and start shipping faster.</p>
                         </div>
 
-                        <form className="space-y-4" onSubmit={onSignUp}>
-                            {/* Full Name */}
-                            <div className="animate-element animate-delay-200">
-                                <label className="text-sm font-medium text-gray-400">Full Name</label>
-                                <GlassInputWrapper>
+                        <form className="space-y-3.5" onSubmit={onSignUp}>
+                            <div className="animate-element">
+                                <label className={labelCls}>Full Name</label>
+                                <InputWrapper>
                                     <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                        <input name="name" type="text" required placeholder="Your full name" className="w-full bg-transparent text-sm p-4 pl-11 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-soft" />
+                                        <input name="name" type="text" required placeholder="Your full name" className={inputCls + ' pl-11'} />
                                     </div>
-                                </GlassInputWrapper>
+                                </InputWrapper>
                             </div>
 
-                            {/* Handle */}
-                            <div className="animate-element animate-delay-300">
-                                <label className="text-sm font-medium text-gray-400">Username / Handle</label>
-                                <GlassInputWrapper>
+                            <div className="animate-element">
+                                <label className={labelCls}>Username / Handle</label>
+                                <InputWrapper>
                                     <div className="relative">
-                                        <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                        <input name="handle" type="text" required placeholder="yourhandle" className="w-full bg-transparent text-sm p-4 pl-11 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <AtSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-soft" />
+                                        <input name="handle" type="text" required placeholder="yourhandle" className={inputCls + ' pl-11'} />
                                     </div>
-                                </GlassInputWrapper>
+                                </InputWrapper>
                             </div>
 
-                            {/* Email */}
-                            <div className="animate-element animate-delay-400">
-                                <label className="text-sm font-medium text-gray-400">Email Address</label>
-                                <GlassInputWrapper>
-                                    <input name="email" type="email" required placeholder="Enter your email address" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
-                                </GlassInputWrapper>
+                            <div className="animate-element">
+                                <label className={labelCls}>Email Address</label>
+                                <InputWrapper>
+                                    <input name="email" type="email" required placeholder="you@company.com" className={inputCls} />
+                                </InputWrapper>
                             </div>
 
-                            {/* Password */}
-                            <div className="animate-element animate-delay-500">
-                                <label className="text-sm font-medium text-gray-400">Password</label>
-                                <GlassInputWrapper>
+                            <div className="animate-element">
+                                <label className={labelCls}>Password</label>
+                                <InputWrapper>
                                     <div className="relative">
-                                        <input name="password" type={showPassword ? 'text' : 'password'} required placeholder="Min. 6 characters" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <input name="password" type={showPassword ? 'text' : 'password'} required placeholder="Min. 6 characters" className={inputCls + ' pr-12'} />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
-                                            {showPassword ? <EyeOff className="w-5 h-5 text-gray-400 hover:text-white transition-colors" /> : <Eye className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />}
+                                            {showPassword ? <EyeOff className="w-5 h-5 text-muted hover:text-ink transition-colors" /> : <Eye className="w-5 h-5 text-muted hover:text-ink transition-colors" />}
                                         </button>
                                     </div>
-                                </GlassInputWrapper>
+                                </InputWrapper>
                             </div>
 
-                            {/* Confirm Password */}
-                            <div className="animate-element animate-delay-600">
-                                <label className="text-sm font-medium text-gray-400">Confirm Password</label>
-                                <GlassInputWrapper>
+                            <div className="animate-element">
+                                <label className={labelCls}>Confirm Password</label>
+                                <InputWrapper>
                                     <div className="relative">
-                                        <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} required placeholder="Re-enter your password" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none text-white placeholder-gray-600" />
+                                        <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} required placeholder="Re-enter your password" className={inputCls + ' pr-12'} />
                                         <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute inset-y-0 right-3 flex items-center">
-                                            {showConfirm ? <EyeOff className="w-5 h-5 text-gray-400 hover:text-white transition-colors" /> : <Eye className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />}
+                                            {showConfirm ? <EyeOff className="w-5 h-5 text-muted hover:text-ink transition-colors" /> : <Eye className="w-5 h-5 text-muted hover:text-ink transition-colors" />}
                                         </button>
                                     </div>
-                                </GlassInputWrapper>
+                                </InputWrapper>
                             </div>
 
-                            <button type="submit" disabled={loading} className="animate-element animate-delay-700 w-full rounded-2xl bg-primary py-4 font-medium text-black hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button type="submit" disabled={loading} className="animate-element w-full rounded-2xl bg-primary py-4 font-medium text-on-primary hover:bg-primary-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 {loading ? 'Creating account...' : 'Create Account'}
                             </button>
                         </form>
 
-                        <div className="animate-element animate-delay-800 relative flex items-center justify-center">
-                            <span className="w-full border-t border-border"></span>
-                            <span className="px-4 text-sm text-gray-500 bg-black absolute">Or continue with</span>
+                        <div className="animate-element relative flex items-center justify-center my-1">
+                            <span className="w-full border-t border-hairline"></span>
+                            <span className="px-4 text-[11px] uppercase tracking-[0.08em] text-muted-soft bg-canvas absolute">Or continue with</span>
                         </div>
 
-                        <button onClick={onGoogleSignIn} className="animate-element animate-delay-900 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-surface-highlight transition-colors text-white">
+                        <button onClick={onGoogleSignIn} className="animate-element w-full flex items-center justify-center gap-3 border border-hairline-strong rounded-2xl py-4 hover:bg-canvas-soft transition-colors text-ink font-medium">
                             <GoogleIcon />
                             Continue with Google
                         </button>
 
-                        <p className="animate-element animate-delay-900 text-center text-sm text-gray-400">
-                            Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignIn?.(); }} className="text-primary hover:underline transition-colors">Sign In</a>
+                        <p className="animate-element text-center text-sm text-muted">
+                            Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignIn?.(); }} className="text-primary font-medium hover:underline transition-colors">Sign In</a>
                         </p>
                     </div>
                 </div>
             </section>
 
-            {/* Right column: hero image + testimonials */}
-            {heroImageSrc && (
-                <section className="hidden md:block flex-1 relative p-4">
-                    <div className="animate-slide-right animate-delay-300 absolute inset-4 rounded-3xl bg-cover bg-center" style={{ backgroundImage: `url(${heroImageSrc})` }}></div>
-                    {testimonials.length > 0 && (
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 px-8 w-full justify-center">
-                            <TestimonialCard testimonial={testimonials[0]} delay="animate-delay-1000" />
-                            {testimonials[1] && <div className="hidden xl:flex"><TestimonialCard testimonial={testimonials[1]} delay="animate-delay-1200" /></div>}
-                        </div>
-                    )}
-                </section>
-            )}
+            <HeroPanel heroImageSrc={heroImageSrc} testimonials={testimonials} />
         </div>
     );
 };

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Chat Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#f54e00", "primary-active": "#d04200", "on-primary": "#ffffff",
+            canvas: "#f7f7f4", "canvas-soft": "#fafaf7", "surface-card": "#ffffff", "surface-strong": "#e6e5e0",
+            hairline: "#e6e5e0", "hairline-soft": "#efeee8", "hairline-strong": "#cfcdc4",
+            ink: "#26251e", body: "#5a5852", muted: "#807d72", "muted-soft": "#a09c92",
+            "tl-thinking": "#dfa88f", "tl-grep": "#9fc9a2", "tl-read": "#9fbbe0", "tl-edit": "#c0a8dd", "tl-done": "#c08532",
+            success: "#1f8a65", error: "#cf2d56",
+            secondary: "#f54e00", background: "#f7f7f4", surface: "#ffffff", "surface-highlight": "#efeee8", border: "#e6e5e0",
+          },
+          fontFamily: { sans: ["Inter", "sans-serif"], mono: ["JetBrains Mono", "monospace"] },
+          borderRadius: { xs: "4px", sm: "6px", md: "8px", lg: "12px", xl: "16px" },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { margin: 0; background: #f7f7f4; color: #26251e; font-family: "Inter", sans-serif; letter-spacing: -0.01em; }
+    .display { font-weight: 400; letter-spacing: -0.03em; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #cfcdc4; border-radius: 9999px; }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/preview.tsx"></script>
+</body>
+
+</html>

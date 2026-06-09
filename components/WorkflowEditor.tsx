@@ -29,9 +29,9 @@ const ColorPicker = ({ color, onChange, onClose }: { color: string; onChange: (c
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.88, y: -6 }}
       transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-      className="absolute top-full left-0 mt-2 z-50 bg-[#18181b] border border-white/10 rounded-xl p-3 shadow-2xl w-[152px]"
+      className="absolute top-full left-0 mt-2 z-50 bg-surface-card border border-hairline rounded-lg p-3 shadow-sm w-[152px]"
     >
-      <p className="text-[9px] font-bold uppercase text-gray-600 tracking-widest mb-2">Color</p>
+      <p className="text-[9px] font-bold uppercase text-muted tracking-widest mb-2">Color</p>
       <div className="grid grid-cols-6 gap-1.5">
         {COLOR_PRESETS.map(c => (
           <button
@@ -62,9 +62,9 @@ const TYPE_OPTIONS: { value: WorkflowStatus['type']; label: string }[] = [
 
 const TypeToggle = ({ value, onChange }: { value: WorkflowStatus['type']; onChange: (t: WorkflowStatus['type']) => void }) => {
   const styles: Record<WorkflowStatus['type'], string> = {
-    start:  'bg-zinc-700/60 text-zinc-300 border-zinc-600',
-    active: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-    done:   'bg-primary/20 text-primary border-primary/40',
+    start:  "bg-surface-strong text-body border-hairline-strong",
+    active: "bg-blue-100 text-blue-700 border-blue-200",
+    done:   "bg-primary/10 text-primary border-primary/30",
   };
 
   return (
@@ -74,7 +74,7 @@ const TypeToggle = ({ value, onChange }: { value: WorkflowStatus['type']; onChan
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={`px-2.5 py-1 text-[11px] font-bold transition-all duration-200 ${
-            value === opt.value ? styles[opt.value] : 'text-gray-600 hover:text-gray-400 bg-transparent'
+            value === opt.value ? styles[opt.value] : 'text-muted-soft hover:text-muted bg-transparent'
           }`}
         >
           {opt.label}
@@ -153,7 +153,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
     <div className="space-y-6">
 
       {/* ── Pipeline Visualizer ─────────────────────────────────────────── */}
-      <div className="bg-background/50 rounded-2xl p-5 border border-border/60 overflow-x-auto">
+      <div className="bg-canvas-soft rounded-lg p-5 border border-hairline overflow-x-auto">
         <p className="text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-4">Live Preview</p>
         <div className="flex items-center gap-2 flex-nowrap min-w-max">
           {statuses.map((status, i) => (
@@ -173,7 +173,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
                 {status.type === 'done' && <Check size={10} strokeWidth={3.5} />}
               </motion.div>
               {i < statuses.length - 1 && (
-                <ChevronRight size={13} className="text-gray-700 flex-shrink-0" />
+                <ChevronRight size={13} className="text-muted-soft flex-shrink-0" />
               )}
             </React.Fragment>
           ))}
@@ -191,10 +191,10 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-                className="flex items-center gap-3 bg-surface border border-border rounded-2xl px-4 py-3 group hover:border-white/20 transition-colors duration-200 cursor-default"
+                className="flex items-center gap-3 bg-surface-card border border-hairline rounded-lg px-4 py-3 group hover:border-primary/40 transition-colors duration-200 cursor-default"
               >
                 {/* Drag Handle */}
-                <div className="text-gray-700 hover:text-gray-400 cursor-grab active:cursor-grabbing transition-colors flex-shrink-0">
+                <div className="text-muted-soft hover:text-muted cursor-grab active:cursor-grabbing transition-colors flex-shrink-0">
                   <GripVertical size={17} />
                 </div>
 
@@ -220,7 +220,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
                 <input
                   value={status.name}
                   onChange={e => updateStatus(status.id, { name: e.target.value })}
-                  className="flex-1 bg-transparent text-sm font-medium text-white focus:outline-none placeholder-gray-600 min-w-0 cursor-text"
+                  className="flex-1 bg-transparent text-sm font-medium text-ink focus:outline-none placeholder-muted-soft min-w-0 cursor-text"
                   placeholder="Status name"
                 />
 
@@ -228,7 +228,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
                 <button
                   onClick={() => deleteStatus(status.id)}
                   disabled={statuses.length <= 1}
-                  className="text-gray-700 hover:text-red-400 disabled:opacity-0 disabled:pointer-events-none transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
+                  className="text-muted-soft hover:text-error disabled:opacity-0 disabled:pointer-events-none transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -243,7 +243,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         onClick={addStatus}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-dashed border-border text-gray-500 hover:text-white hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
+        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-dashed border-hairline-strong text-muted hover:text-ink hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
       >
         <Plus size={16} className="group-hover:scale-125 group-hover:text-primary transition-all duration-200" />
         <span className="text-sm font-bold">Add Status</span>
@@ -253,20 +253,20 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
       {doneStatuses.length > 0 && (
         <div className="space-y-2.5">
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-px bg-border/40" />
-            <span className="text-[10px] font-bold uppercase text-gray-600 tracking-widest flex items-center gap-1.5">
+            <div className="flex-1 h-px bg-hairline" />
+            <span className="text-[10px] font-bold uppercase text-muted tracking-widest flex items-center gap-1.5">
               <Lock size={9} /> Terminal
             </span>
-            <div className="flex-1 h-px bg-border/40" />
+            <div className="flex-1 h-px bg-hairline" />
           </div>
           {doneStatuses.map(status => (
             <div key={status.id}>
             <motion.div
               layout
-              className="flex items-center gap-3 bg-surface/50 border border-border/50 rounded-2xl px-4 py-3 group"
+              className="flex items-center gap-3 bg-canvas-soft border border-hairline rounded-lg px-4 py-3 group"
             >
               {/* Lock icon instead of drag handle */}
-              <div className="text-gray-700 flex-shrink-0">
+              <div className="text-muted-soft flex-shrink-0">
                 <Lock size={15} />
               </div>
 
@@ -292,7 +292,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
               <input
                 value={status.name}
                 onChange={e => updateStatus(status.id, { name: e.target.value })}
-                className="flex-1 bg-transparent text-sm font-medium text-white focus:outline-none placeholder-gray-600 min-w-0"
+                className="flex-1 bg-transparent text-sm font-medium text-ink focus:outline-none placeholder-muted-soft min-w-0"
                 placeholder="Status name"
               />
 
@@ -302,7 +302,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
                   setBlockedDeleteId(status.id);
                   setTimeout(() => setBlockedDeleteId(null), 3000);
                 }}
-                className="text-gray-700 hover:text-red-400 transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
+                className="text-muted-soft hover:text-error transition-all duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-1"
               >
                 <Trash2 size={15} />
               </button>
@@ -317,8 +317,8 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
                   exit={{ opacity: 0, y: -4, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex items-center gap-2 px-4 py-2 mt-1 rounded-xl bg-red-500/10 border border-red-500/20">
-                    <span className="text-xs text-red-400 font-medium">You can't delete a terminal status — the workflow needs somewhere tasks go to rest in peace.</span>
+                  <div className="flex items-center gap-2 px-4 py-2 mt-1 rounded-xl bg-error/10 border border-error/20">
+                    <span className="text-xs text-error font-medium">You can't delete a terminal status — the workflow needs somewhere tasks go to rest in peace.</span>
                   </div>
                 </motion.div>
               )}
@@ -340,11 +340,11 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave }) => 
               ? 'bg-primary/15 text-primary border border-primary/30'
               : isDirty
                 ? 'bg-primary text-black shadow-[0_0_20px_rgba(209,244,95,0.25)] hover:shadow-[0_0_25px_rgba(209,244,95,0.4)]'
-                : 'bg-surface-highlight text-gray-500 cursor-not-allowed'
+                : 'bg-surface-strong text-muted-soft cursor-not-allowed'
           }`}
         >
           {saving ? (
-            <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
           ) : saved ? (
             <Check size={16} strokeWidth={3} />
           ) : (

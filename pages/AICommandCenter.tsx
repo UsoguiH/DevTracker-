@@ -1,8 +1,11 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Send, CheckCircle2, ArrowLeft, Sparkles, ClipboardList,
-  AlertTriangle, Sun, Copy, Check, Zap, TrendingUp
+  AlertTriangle, Sun, Copy, Check, Zap, TrendingUp,
+  Plus, ArrowUp, ChevronDown, ChevronLeft, Pencil,
+  Search, Mic, PanelLeft, SquarePen, SlidersHorizontal, MoreHorizontal,
+  RefreshCw, Paperclip, X, Trash2, LogOut
 } from 'lucide-react';
 import { Task, User, Project, AIAction } from '../types';
 import { processUserMessage } from '../lib/aiService';
@@ -280,152 +283,540 @@ const Launcher: React.FC<{ onSelect: (v: ActiveView) => void }> = ({ onSelect })
 
 // ─── AI Chat View ─────────────────────────────────────────────────────────────
 
-interface ChatMsg { id: string; role: 'user' | 'ai' | 'thinking' | 'action'; text: string; action?: AIAction; confirmed?: boolean; }
+export interface ChatMsg { id: string; role: 'user' | 'ai' | 'thinking' | 'action'; text: string; action?: AIAction; confirmed?: boolean; }
 
-const AIChatView: React.FC<{ tasks: Task[]; onAction: (a: AIAction) => void; onBack: () => void }> = ({ tasks, onAction, onBack }) => {
-  const ACCENT = '#9ef5a3';
-  const [msgs, setMsgs] = useState<ChatMsg[]>([
-    { id: 'init', role: 'ai', text: "Hey! I'm your AI Project Manager. Ask me to create tasks, analyze blockers, filter your board, or plan your next sprint." }
-  ]);
+// ── DevTracker AI Chat — styled to feel exactly like ChatGPT ──────────────────
+// Dark canvas (#212121), centered 768px conversation column, user messages in a
+// gray pill on the right, assistant replies as bare full-width text on the left,
+// and a rounded pill composer with a +, a growing textarea, and a circular
+// up-arrow send button. Empty state is the ChatGPT "hero": a centered heading
+// with the composer and suggestion chips beneath it.
+
+// An original AI mark for DevTracker PM — a clean-room geometric "spark",
+// not any third-party brand logo.
+const PmLogo: React.FC<{ size?: number }> = ({ size = 28 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-label="DevTracker PM">
+    <defs>
+      <linearGradient id="pmGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#6ee7b7" />
+        <stop offset="1" stopColor="#14b8a6" />
+      </linearGradient>
+    </defs>
+    <path
+      d="M16 2c1.85 5.1 4.9 8.15 10 10-5.1 1.85-8.15 4.9-10 10-1.85-5.1-4.9-8.15-10-10 5.1-1.85 8.15-4.9 10-10Z"
+      fill="url(#pmGrad)"
+    />
+  </svg>
+);
+
+// ── Tiny Markdown renderer (bold, italic, inline code, bullet/numbered lists,
+// headings) so the PM's replies render like ChatGPT without a heavy dependency.
+const renderInline = (text: string, kp: string): React.ReactNode[] => {
+  const nodes: React.ReactNode[] = [];
+  const re = /(\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*)/g;
+  let last = 0, m: RegExpExecArray | null, i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[2] !== undefined) nodes.push(<strong key={`${kp}b${i}`} className="font-semibold text-white">{m[2]}</strong>);
+    else if (m[3] !== undefined) nodes.push(<code key={`${kp}c${i}`} className="px-1.5 py-0.5 rounded bg-white/10 text-[13px] font-mono">{m[3]}</code>);
+    else if (m[4] !== undefined) nodes.push(<em key={`${kp}i${i}`}>{m[4]}</em>);
+    last = m.index + m[0].length; i++;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+};
+
+const Markdown: React.FC<{ text: string }> = ({ text }) => {
+  const lines = (text || '').split('\n');
+  const blocks: React.ReactNode[] = [];
+  let i = 0, k = 0;
+  const special = (l: string) => /^(#{1,3})\s|^\s*[-*]\s|^\s*\d+\.\s/.test(l);
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i++; continue; }
+    const h = line.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      const cls = h[1].length === 1 ? 'text-lg font-semibold' : h[1].length === 2 ? 'text-[16px] font-semibold' : 'text-[15px] font-semibold';
+      blocks.push(<p key={k} className={cls}>{renderInline(h[2], `h${k}`)}</p>); k++; i++; continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { items.push(lines[i].replace(/^\s*[-*]\s+/, '')); i++; }
+      blocks.push(<ul key={k} className="list-disc pl-5 space-y-1">{items.map((it, j) => <li key={j}>{renderInline(it, `u${k}_${j}`)}</li>)}</ul>); k++; continue;
+    }
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { items.push(lines[i].replace(/^\s*\d+\.\s+/, '')); i++; }
+      blocks.push(<ol key={k} className="list-decimal pl-5 space-y-1">{items.map((it, j) => <li key={j}>{renderInline(it, `o${k}_${j}`)}</li>)}</ol>); k++; continue;
+    }
+    const para: string[] = [];
+    while (i < lines.length && lines[i].trim() && !special(lines[i])) { para.push(lines[i]); i++; }
+    blocks.push(<p key={k}>{renderInline(para.join(' '), `p${k}`)}</p>); k++;
+  }
+  return <div className="space-y-2.5">{blocks}</div>;
+};
+
+interface Convo { id: string; title: string; msgs: ChatMsg[]; }
+
+const MODELS = [
+  { id: 'haiku', name: 'DevTracker PM', desc: 'Fast — great for planning' },
+  { id: 'sonnet', name: 'DevTracker PM Max', desc: 'Smarter — deeper reasoning' },
+] as const;
+
+export const AIChatView: React.FC<{
+  tasks: Task[];
+  onAction: (a: AIAction) => void;
+  onBack: () => void;
+  previewSeed?: ChatMsg[]; // dev-only: pre-populate the thread for screenshots
+}> = ({ tasks, onAction, onBack, previewSeed }) => {
+  const titleFrom = (ms: ChatMsg[]) => ms.find(m => m.role === 'user')?.text.slice(0, 38) || 'New chat';
+
+  // ── Conversations (threads) — makes New chat + history fully functional ──
+  const [convos, setConvos] = useState<Convo[]>(() =>
+    previewSeed && previewSeed.length
+      ? [{ id: 'seed', title: titleFrom(previewSeed), msgs: previewSeed }]
+      : [{ id: 'c0', title: 'New chat', msgs: [] }]
+  );
+  const [activeId, setActiveId] = useState<string>(previewSeed?.length ? 'seed' : 'c0');
+
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [model, setModel] = useState<'haiku' | 'sonnet'>('haiku');
+  const [menu, setMenu] = useState<null | 'model' | 'plus' | 'tools' | 'account'>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [listening, setListening] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const SUGGESTIONS = ['Create 3 tasks for auth system', 'What are our blockers?', 'Show high priority tasks', 'Plan this sprint'];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const recogRef = useRef<any>(null);
+
+  const active = convos.find(c => c.id === activeId) ?? convos[0];
+  const msgs = active.msgs;
+  const isEmpty = msgs.length === 0;
+
+  const SUGGESTIONS = [
+    'Plan 4 tasks for a login system',
+    'What are my blockers right now?',
+    'Show me high priority work',
+    'Draft this sprint for me',
+  ];
+  const TOOLS = [
+    { label: 'Plan a sprint', prompt: 'Draft a focused sprint plan for this project with 3-5 tasks.' },
+    { label: 'Find blockers', prompt: 'Analyze my tasks and list the current blockers and risks.' },
+    { label: 'Daily standup', prompt: 'Write a daily standup summary for me (Yesterday / Today / Blockers).' },
+    { label: 'Prioritize backlog', prompt: 'Look at my backlog and tell me the 3 highest-impact things to do next.' },
+  ];
+
+  // Update only the active conversation's messages (keeps send() unchanged).
+  const setMsgs = (updater: ChatMsg[] | ((p: ChatMsg[]) => ChatMsg[])) => {
+    setConvos(prev => prev.map(c => {
+      if (c.id !== activeId) return c;
+      const next = typeof updater === 'function' ? (updater as (p: ChatMsg[]) => ChatMsg[])(c.msgs) : updater;
+      return { ...c, msgs: next, title: titleFrom(next) };
+    }));
+  };
+
+  // Grow the textarea with its content, then snap back when empty.
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  }, [input]);
 
   const send = async (text?: string) => {
     const msg = (text || input).trim();
     if (!msg || thinking) return;
+    // Snapshot the conversation BEFORE this turn so the PM has memory.
+    const history = msgs
+      .filter(m => m.role === 'user' || m.role === 'ai' || m.role === 'action')
+      .slice(-10)
+      .map(m => ({ role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant', text: m.text }));
     setInput('');
+    setMenu(null);
     setMsgs(p => [...p, { id: `u${Date.now()}`, role: 'user', text: msg }]);
     setMsgs(p => [...p, { id: 'thinking', role: 'thinking', text: '' }]);
     setThinking(true);
     try {
-      const action = await processUserMessage(msg, tasks);
+      const action = await processUserMessage(msg, tasks, model, history);
       setMsgs(p => p.filter(m => m.role !== 'thinking'));
       if (action.intent === 'CREATE_TASKS') {
-        setMsgs(p => [...p, { id: `a${Date.now()}`, role: 'action', text: action.summary || 'I can create these tasks for you.', action }]);
+        setMsgs(p => [...p, { id: `a${Date.now()}`, role: 'action', text: action.summary || 'Here are the tasks I put together.', action }]);
       } else {
         setMsgs(p => [...p, { id: `ai${Date.now()}`, role: 'ai', text: action.summary || 'Done.' }]);
         if (action.intent !== 'NONE') onAction(action);
       }
     } catch {
       setMsgs(p => p.filter(m => m.role !== 'thinking'));
-      setMsgs(p => [...p, { id: `err${Date.now()}`, role: 'ai', text: 'Connection error. Please check the AI edge function.' }]);
+      setMsgs(p => [...p, { id: `err${Date.now()}`, role: 'ai', text: 'I hit a connection error. Make sure the local AI server is running (npm run ai-server).' }]);
     } finally { setThinking(false); }
     setTimeout(() => scrollRef.current?.scrollTo({ top: 99999, behavior: 'smooth' }), 50);
   };
 
-  return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col h-full bg-[#0f0f11] rounded-3xl p-5 overflow-hidden">
-      <BackBtn onClick={onBack} accent={ACCENT} />
+  // ── Button actions ──────────────────────────────────────────────────────
+  const newChat = () => {
+    const id = `c${Date.now()}`;
+    setConvos(prev => [{ id, title: 'New chat', msgs: [] }, ...prev]);
+    setActiveId(id);
+    setInput('');
+    setMenu(null);
+    setTimeout(() => taRef.current?.focus(), 0);
+  };
+  const openConvo = (id: string) => { setActiveId(id); setSearchOpen(false); setSearch(''); };
+  const clearAll = () => { setConvos([{ id: 'c0', title: 'New chat', msgs: [] }]); setActiveId('c0'); setMenu(null); };
 
-      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
-        <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: '#1f1f22', border: `1px solid ${ACCENT}30` }}>
-          <div className="ai-dot-1 w-2 h-2 rounded-full" style={{ background: ACCENT }} />
+  const copyMsg = (m: ChatMsg) => {
+    navigator.clipboard?.writeText(m.text).catch(() => {});
+    setCopiedId(m.id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+  const regenerate = (id: string) => {
+    const idx = msgs.findIndex(m => m.id === id);
+    if (idx < 0) return;
+    let u = -1;
+    for (let i = idx - 1; i >= 0; i--) { if (msgs[i].role === 'user') { u = i; break; } }
+    if (u < 0) return;
+    const text = msgs[u].text;
+    setMsgs(p => p.slice(0, u)); // drop old user turn + its answer, then re-ask
+    send(text);
+  };
+  const editUser = (text: string) => { setInput(text); taRef.current?.focus(); };
+
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) setInput(prev => (prev ? prev + ' ' : '') + `[attached: ${f.name}]`);
+    setMenu(null);
+    e.target.value = '';
+  };
+
+  const toggleMic = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { alert('Voice dictation is not supported in this browser.'); return; }
+    if (listening) { recogRef.current?.stop(); return; }
+    const r = new SR();
+    r.lang = 'en-US';
+    r.interimResults = true;
+    r.continuous = false;
+    r.onresult = (e: any) => setInput(Array.from(e.results).map((x: any) => x[0].transcript).join(''));
+    r.onend = () => setListening(false);
+    r.onerror = () => setListening(false);
+    recogRef.current = r;
+    r.start();
+    setListening(true);
+  };
+
+  const visibleConvos = convos
+    .filter(c => c.msgs.length > 0)
+    .filter(c => c.title.toLowerCase().includes(search.trim().toLowerCase()));
+
+  // Small inline icon button for message hover actions.
+  const IconBtn: React.FC<{ title: string; onClick: () => void; children: React.ReactNode }> = ({ title, onClick, children }) => (
+    <button type="button" title={title} onClick={onClick}
+      className="w-7 h-7 rounded-md flex items-center justify-center text-[#b4b4b4] hover:bg-white/10 hover:text-white transition-colors">
+      {children}
+    </button>
+  );
+
+  // The rounded composer — textarea on top, a functional toolbar row beneath.
+  const canSend = !!input.trim() && !thinking;
+  const composer = (
+    <div className="bg-[#303030] rounded-[28px] px-2.5 pt-3 pb-2 shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
+      <input ref={fileRef} type="file" className="hidden" onChange={onPickFile} />
+      <textarea
+        ref={taRef}
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+        placeholder="Message your project manager"
+        rows={1}
+        disabled={thinking}
+        className="w-full resize-none bg-transparent text-[16px] text-[#ececec] placeholder-[#8e8e8e] outline-none leading-6 px-2.5 mb-1"
+        style={{ maxHeight: 200 }}
+      />
+      <div className="flex items-center gap-1.5">
+        {/* + menu */}
+        <div className="relative">
+          <button type="button" title="Add" onClick={() => setMenu(menu === 'plus' ? null : 'plus')}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#ececec] hover:bg-white/10 transition-colors">
+            <Plus size={20} />
+          </button>
+          {menu === 'plus' && (
+            <div className="absolute bottom-full mb-2 left-0 z-50 w-56 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
+              <button onClick={() => fileRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
+                <Paperclip size={16} /> Attach a file
+              </button>
+            </div>
+          )}
         </div>
-        <div>
-          <p className="font-bold text-white text-sm">AI Chat</p>
-          <p className="text-[11px] text-gray-500">{tasks.filter(t => !t.sprintId).length} active tasks in context</p>
+        {/* Tools menu */}
+        <div className="relative">
+          <button type="button" onClick={() => setMenu(menu === 'tools' ? null : 'tools')}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[14px] text-[#ececec] hover:bg-white/10 transition-colors">
+            <SlidersHorizontal size={17} /> Tools
+          </button>
+          {menu === 'tools' && (
+            <div className="absolute bottom-full mb-2 left-0 z-50 w-60 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
+              {TOOLS.map(t => (
+                <button key={t.label} onClick={() => send(t.prompt)} className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ background: `${ACCENT}15`, color: ACCENT }}>
-          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT }} />
-          LIVE
+        <div className="ml-auto flex items-center gap-1.5">
+          <button type="button" title="Dictate" onClick={toggleMic}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: listening ? '#ef4444' : 'transparent', color: listening ? '#fff' : '#ececec' }}>
+            <Mic size={19} className={listening ? 'animate-pulse' : ''} />
+          </button>
+          <button onClick={() => send()} disabled={!canSend} title="Send"
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: canSend ? '#ffffff' : '#676767' }}>
+            <ArrowUp size={20} style={{ color: canSend ? '#000' : '#2f2f2f' }} />
+          </button>
         </div>
       </div>
+    </div>
+  );
 
-      {/* Suggestions (shown when empty) */}
-      {msgs.length <= 1 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {SUGGESTIONS.map(s => (
-            <button key={s} onClick={() => send(s)}
-              className="px-3 py-1.5 rounded-xl text-xs text-gray-400 transition-all hover:text-white hover:bg-white/10"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              {s}
-            </button>
-          ))}
+  // One conversation row, with copy / regenerate / edit on hover.
+  const renderMsg = (m: ChatMsg) => {
+    if (m.role === 'user') {
+      return (
+        <div key={m.id} className="group flex flex-col items-end">
+          <div className="max-w-[80%] bg-[#303030] text-[#ececec] rounded-3xl px-5 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap">
+            {m.text}
+          </div>
+          <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <IconBtn title="Copy" onClick={() => copyMsg(m)}>{copiedId === m.id ? <Check size={15} /> : <Copy size={15} />}</IconBtn>
+            <IconBtn title="Edit" onClick={() => editUser(m.text)}><Pencil size={15} /></IconBtn>
+          </div>
         </div>
+      );
+    }
+    if (m.role === 'ai') {
+      return (
+        <div key={m.id} className="group">
+          <div className="text-[15px] leading-7 text-[#ececec]"><Markdown text={m.text} /></div>
+          <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <IconBtn title="Copy" onClick={() => copyMsg(m)}>{copiedId === m.id ? <Check size={15} /> : <Copy size={15} />}</IconBtn>
+            <IconBtn title="Regenerate" onClick={() => regenerate(m.id)}><RefreshCw size={15} /></IconBtn>
+          </div>
+        </div>
+      );
+    }
+    if (m.role === 'thinking') {
+      return (
+        <div key={m.id} className="flex items-center">
+          <motion.span className="w-3.5 h-3.5 rounded-full bg-[#ececec]"
+            animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1.1, repeat: Infinity }} />
+        </div>
+      );
+    }
+    if (m.role === 'action' && m.action) {
+      const taskList = m.action.payload?.tasks as any[] | undefined;
+      return (
+        <div key={m.id} className="group space-y-3">
+          <div className="text-[15px] leading-7 text-[#ececec]"><Markdown text={m.text} /></div>
+          <div className="rounded-2xl border border-white/10 overflow-hidden bg-[#2a2a2a] max-w-xl">
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <ClipboardList size={14} className="text-gray-400" /> Proposed tasks
+            </div>
+            <div className="p-2 space-y-1">
+              {(taskList || []).map((t, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-white/[0.04]">
+                  <span className="text-[11px] font-bold w-4 text-center text-gray-500">{i + 1}</span>
+                  <span className="flex-1 text-sm text-[#ececec] truncate">{t.title}</span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.priority === 'High' ? 'text-red-300 bg-red-500/15' : t.priority === 'Medium' ? 'text-amber-300 bg-amber-500/15' : 'text-gray-300 bg-white/10'}`}>
+                    {t.priority}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {!m.confirmed ? (
+              <div className="flex gap-2 px-3 py-3 border-t border-white/10">
+                <button onClick={() => { onAction(m.action!); setMsgs(p => p.map(x => x.id === m.id ? { ...x, confirmed: true } : x)); }}
+                  className="flex-1 py-2 rounded-full text-sm font-semibold bg-white text-black hover:bg-gray-200 transition-colors">
+                  Add to board
+                </button>
+                <button onClick={() => setMsgs(p => p.filter(x => x.id !== m.id))}
+                  className="px-4 py-2 rounded-full text-sm font-medium text-gray-300 border border-white/15 hover:bg-white/10 transition-colors">
+                  Dismiss
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-3 text-sm text-emerald-400 border-t border-white/10">
+                <CheckCircle2 size={15} /> Added to your board.
+              </div>
+            )}
+          </div>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <IconBtn title="Copy" onClick={() => copyMsg(m)}>{copiedId === m.id ? <Check size={15} /> : <Copy size={15} />}</IconBtn>
+            <IconBtn title="Regenerate" onClick={() => regenerate(m.id)}><RefreshCw size={15} /></IconBtn>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="flex h-full bg-[#212121] rounded-3xl overflow-hidden text-[#ececec]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      {/* Click-away layer for any open dropdown */}
+      {menu && <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />}
+
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      {sidebarOpen && (
+        <aside className="hidden md:flex w-[260px] shrink-0 flex-col bg-[#171717]">
+          <div className="flex items-center justify-between px-3 h-12">
+            <button onClick={() => setSidebarOpen(false)} title="Close sidebar" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+              <PanelLeft size={20} />
+            </button>
+            <button onClick={newChat} title="New chat" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+              <SquarePen size={19} />
+            </button>
+          </div>
+
+          <div className="px-2 space-y-0.5">
+            <button onClick={newChat} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] hover:bg-white/10 transition-colors">
+              <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center"><SquarePen size={14} className="text-black" /></span>
+              New chat
+            </button>
+            {!searchOpen ? (
+              <button onClick={() => setSearchOpen(true)} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] hover:bg-white/10 transition-colors">
+                <span className="w-6 h-6 flex items-center justify-center"><Search size={16} /></span>
+                Search chats
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5">
+                <Search size={16} className="text-[#8e8e8e]" />
+                <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Search chats"
+                  className="flex-1 bg-transparent text-sm outline-none placeholder-[#8e8e8e]" />
+                <button onClick={() => { setSearchOpen(false); setSearch(''); }}><X size={15} className="text-[#8e8e8e] hover:text-white" /></button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto mt-3 px-2 min-h-0" style={{ scrollbarWidth: 'none' }}>
+            <p className="px-2.5 py-2 text-xs font-medium text-[#8e8e8e]">Chats</p>
+            {visibleConvos.length === 0 && (
+              <p className="px-2.5 py-2 text-xs text-[#6b6b6b]">{search ? 'No matches.' : 'No chats yet.'}</p>
+            )}
+            {visibleConvos.map(c => (
+              <button key={c.id} onClick={() => openConvo(c.id)}
+                className={`group w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[14px] transition-colors text-left ${c.id === activeId ? 'bg-white/10' : 'hover:bg-white/10'}`}>
+                <span className="flex-1 truncate">{c.title}</span>
+                <MoreHorizontal size={16} className="opacity-0 group-hover:opacity-60 shrink-0" />
+              </button>
+            ))}
+          </div>
+
+          <div className="p-2 border-t border-white/5">
+            <button onClick={onBack} className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors">
+              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-black text-[11px] font-bold">You</span>
+              <div className="text-left leading-tight">
+                <p className="text-[14px]">You</p>
+                <p className="text-xs text-[#8e8e8e]">Claude Code · Free</p>
+              </div>
+            </button>
+          </div>
+        </aside>
       )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0" style={{ scrollbarWidth: 'none' }}>
-        {msgs.map(m => (
-          <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-            {m.role === 'user' && (
-              <div className="flex justify-end">
-                <div className="max-w-[75%] px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm text-gray-200 leading-relaxed"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  {m.text}
-                </div>
-              </div>
-            )}
-            {m.role === 'ai' && (
-              <div className="flex items-start gap-2.5 max-w-[82%]">
-                <div className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center" style={{ background: ACCENT + '20', border: `1px solid ${ACCENT}40` }}>
-                  <Sparkles size={10} style={{ color: ACCENT }} />
-                </div>
-                <div className="px-4 py-2.5 rounded-2xl rounded-tl-sm text-sm text-gray-200 leading-relaxed"
-                  style={{ background: `${ACCENT}0D`, border: `1px solid ${ACCENT}25` }}>
-                  {m.text}
-                </div>
-              </div>
-            )}
-            {m.role === 'thinking' && (
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center animate-pulse" style={{ background: ACCENT + '15' }}>
-                  <Sparkles size={10} style={{ color: ACCENT }} />
-                </div>
-                <div className="flex gap-1 px-4 py-3 rounded-2xl" style={{ background: `${ACCENT}08`, border: `1px solid ${ACCENT}20` }}>
-                  {[0, 1, 2].map(i => (
-                    <motion.div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT + '80' }}
-                      animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {m.role === 'action' && m.action && (
-              <div className="flex items-start gap-2.5 max-w-[82%]">
-                <div className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center" style={{ background: ACCENT + '20' }}>
-                  <Sparkles size={10} style={{ color: ACCENT }} />
-                </div>
-                <div className="rounded-2xl rounded-tl-sm overflow-hidden w-full" style={{ border: `1px solid ${ACCENT}30` }}>
-                  <div className="px-4 py-3 text-sm text-gray-200" style={{ background: `${ACCENT}0D` }}>{m.text}</div>
-                  {!m.confirmed ? (
-                    <div className="flex gap-2 px-4 py-2.5" style={{ background: `${ACCENT}08`, borderTop: `1px solid ${ACCENT}15` }}>
-                      <button onClick={() => { onAction(m.action!); setMsgs(p => p.map(x => x.id === m.id ? { ...x, confirmed: true } : x)); }}
-                        className="flex-1 py-1.5 rounded-lg text-xs font-bold text-[#1f1f22] transition-all hover:opacity-90" style={{ background: ACCENT }}>
-                        Accept & Create
-                      </button>
-                      <button onClick={() => setMsgs(p => p.filter(x => x.id !== m.id))}
-                        className="flex-1 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:bg-white/10 transition-all"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        Dismiss
-                      </button>
+      {/* ── Main column ─────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <div className="flex items-center gap-1 px-3 h-12 shrink-0">
+          {!sidebarOpen && (
+            <>
+              <button onClick={() => setSidebarOpen(true)} title="Open sidebar" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+                <PanelLeft size={20} />
+              </button>
+              <button onClick={newChat} title="New chat" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+                <SquarePen size={19} />
+              </button>
+            </>
+          )}
+          {/* Model switcher */}
+          <div className="relative">
+            <button onClick={() => setMenu(menu === 'model' ? null : 'model')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors font-semibold text-[18px]">
+              {MODELS.find(x => x.id === model)?.name} <ChevronDown size={17} className="text-[#8e8e8e]" />
+            </button>
+            {menu === 'model' && (
+              <div className="absolute top-full mt-1 left-0 z-50 w-64 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
+                {MODELS.map(mo => (
+                  <button key={mo.id} onClick={() => { setModel(mo.id); setMenu(null); }}
+                    className="w-full flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-left">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{mo.name}</p>
+                      <p className="text-xs text-[#8e8e8e]">{mo.desc}</p>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2 px-4 py-2.5 text-xs" style={{ color: ACCENT, borderTop: `1px solid ${ACCENT}15` }}>
-                      <CheckCircle2 size={12} /> Tasks created and added to your board.
-                    </div>
-                  )}
-                </div>
+                    {model === mo.id && <Check size={16} className="mt-0.5 text-emerald-400" />}
+                  </button>
+                ))}
               </div>
             )}
-          </motion.div>
-        ))}
-      </div>
+          </div>
+          {/* Account menu */}
+          <div className="relative ml-auto">
+            <button onClick={() => setMenu(menu === 'account' ? null : 'account')}
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-black text-xs font-bold">
+              You
+            </button>
+            {menu === 'account' && (
+              <div className="absolute top-full mt-1 right-0 z-50 w-56 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
+                <button onClick={() => { setMenu(null); onBack(); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
+                  <LogOut size={16} /> Back to AI hub
+                </button>
+                <button onClick={clearAll} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-white/10 transition-colors">
+                  <Trash2 size={16} /> Clear conversations
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
-      <div className="flex items-end gap-3 mt-4 px-3 py-2.5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <textarea value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder="Ask me anything..." rows={1} disabled={thinking}
-          className="flex-1 resize-none bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none leading-relaxed max-h-20"
-          style={{ minHeight: 24 }} />
-        <button onClick={() => send()} disabled={!input.trim() || thinking}
-          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-25 flex-shrink-0"
-          style={{ background: input.trim() && !thinking ? ACCENT : 'rgba(255,255,255,0.05)' }}>
-          <Send size={13} style={{ color: input.trim() && !thinking ? '#1f1f22' : 'white' }} />
-        </button>
+        {isEmpty ? (
+          // ── Hero / empty state ────────────────────────────────────────────
+          <div className="flex-1 flex flex-col items-center justify-center px-4 -mt-8">
+            <PmLogo size={40} />
+            <h1 className="text-[28px] sm:text-[32px] font-semibold mt-4 mb-7 text-center">
+              What can I help you ship?
+            </h1>
+            <div className="w-full max-w-3xl">{composer}</div>
+            <div className="flex flex-wrap justify-center gap-2 mt-5 max-w-2xl">
+              {SUGGESTIONS.map(s => (
+                <button key={s} onClick={() => send(s)}
+                  className="px-4 py-2 rounded-full text-sm text-[#ececec] border border-white/15 hover:bg-white/5 transition-colors">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          // ── Active conversation ───────────────────────────────────────────
+          <>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0" style={{ scrollbarWidth: 'none' }}>
+              <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+                {msgs.map(renderMsg)}
+              </div>
+            </div>
+            <div className="shrink-0 pb-2 px-4">
+              <div className="max-w-3xl mx-auto">{composer}</div>
+              <p className="text-center text-[11px] text-[#8e8e8e] mt-2">
+                Powered by Claude Code · review tasks before adding them to your board.
+              </p>
+            </div>
+          </>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

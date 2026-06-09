@@ -24,10 +24,7 @@ const Login: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
-    const clearMessages = () => {
-        setError(null);
-        setMessage(null);
-    };
+    const clearMessages = () => { setError(null); setMessage(null); };
 
     const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -79,7 +76,6 @@ const Login: React.FC = () => {
         }
 
         if (data.user) {
-            // Create profile row
             const { error: profileError } = await supabase.from('profiles').insert({
                 id: data.user.id,
                 name,
@@ -87,17 +83,12 @@ const Login: React.FC = () => {
                 avatar: '',
             });
 
-            if (profileError) {
-                // Profile might already exist via trigger — not fatal
-                console.warn('Profile insert warning:', profileError.message);
-            }
+            if (profileError) console.warn('Profile insert warning:', profileError.message);
 
-            // If email confirmation is required, session will be null
             if (!data.session) {
                 setMessage("Account created! Check your email to confirm before signing in.");
                 setMode('signin');
             }
-            // If auto-confirm is on, onAuthStateChange in App.tsx handles the redirect
         }
 
         setLoading(false);
@@ -118,24 +109,26 @@ const Login: React.FC = () => {
     const Toast = () => (
         <>
             {error && (
-                <div className="fixed top-4 right-4 bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl z-50 text-sm max-w-sm">
+                <div className="fixed top-4 right-4 z-50 max-w-sm rounded-md border border-error/40 bg-surface-card px-4 py-3 text-sm text-error">
                     {error}
                 </div>
             )}
             {message && (
-                <div className="fixed top-4 right-4 bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-xl z-50 text-sm max-w-sm">
+                <div className="fixed top-4 right-4 z-50 max-w-sm rounded-md border border-success/40 bg-surface-card px-4 py-3 text-sm text-success">
                     {message}
                 </div>
             )}
         </>
     );
 
+    const heroImage = "https://images.unsplash.com/photo-1555099962-4199c345e5dd?q=80&w=2070";
+
     if (mode === 'signup') {
         return (
             <>
                 <Toast />
                 <SignUpPage
-                    heroImageSrc="https://images.unsplash.com/photo-1555099962-4199c345e5dd?q=80&w=2070"
+                    heroImageSrc={heroImage}
                     testimonials={sampleTestimonials}
                     onSignUp={handleSignUp}
                     onGoogleSignIn={handleGoogleLogin}
@@ -150,7 +143,7 @@ const Login: React.FC = () => {
         <>
             <Toast />
             <SignInPage
-                heroImageSrc="https://images.unsplash.com/photo-1555099962-4199c345e5dd?q=80&w=2070"
+                heroImageSrc={heroImage}
                 testimonials={sampleTestimonials}
                 onSignIn={handleSignIn}
                 onGoogleSignIn={handleGoogleLogin}

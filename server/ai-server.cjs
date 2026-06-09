@@ -1,0 +1,261 @@
+/**
+ * DevTracker AI server — Claude Code IS the brain.
+ *
+ * Instead of calling a paid third-party API, this tiny local server spawns the
+ * Claude Code CLI in headless mode (`claude -p`). That uses YOUR Claude
+ * subscription login — no API key, no per-token billing.
+ *
+ *   React app  →  /api/ai (Vite proxy)  →  this server  →  claude -p  →  your subscription
+ *
+ * The browser never sees Claude directly; it just POSTs { message, currentContext }
+ * and gets back an AIAction JSON object that the existing AI views already understand.
+ *
+ * Run it alongside Vite:   npm run ai-server   (then, in another terminal, npm run dev)
+ */
+
+const http = require('http');
+const path = require('path');
+const { spawn } = require('child_process');
+
+const PORT = 8787;
+const PROJECT = path.join(__dirname, '..');
+
+// Which model powers the PM. Haiku is fast + plenty smart for task planning;
+// switch to 'sonnet' for deeper reasoning at the cost of speed.
+const MODEL = 'haiku';
+
+// How long to wait for a single Claude run before giving up (ms).
+const TIMEOUT_MS = 90_000;
+
+// ── The AI Project Manager persona + strict output contract ─────────────────
+// Mirrors the schema the frontend (lib/aiService.ts + the AI views) expects, so
+// no React code has to change. The big behavioural rule: Claude is "the boss".
+function buildPrompt({ message, currentContext, history }) {
+  const today = new Date().toISOString().split('T')[0];
+  const ctx = JSON.stringify((currentContext || []).slice(0, 60));
+
+  // Render the recent conversation so the PM has memory across turns.
+  const transcript = (history || [])
+    .slice(-10)
+    .map(h => `${h.role === 'user' ? 'Developer' : 'PM'}: ${h.text}`)
+    .join('\n');
+
+  return `You are the AI Project Manager and Senior Engineering Lead for a software project in the DevTracker app.
+You are the boss: you take a developer's request, decide what work matters, and drive the project forward.
+The current date is: ${today}.
+
+YOUR JOB:
+Turn the developer's latest message into ONE strict JSON command, using the conversation so far for context.
+
+PROACTIVE DECOMPOSITION:
+If the developer gives a high-level goal (e.g. "I need a portfolio", "Build a blog", "add auth"),
+break it into 3-6 specific, technical engineering tasks with real titles they could start immediately.
+Don't ask permission — plan it. Write rich, useful "description" text for each task.
+
+FIVE INTENTS:
+1. CREATE_TASKS  — add new tasks to the board.
+2. UPDATE_TASKS  — change EXISTING tasks: move status (e.g. "mark login done", "start the API task"),
+   or change priority. Match tasks by their title from the board context below. Use the closest match.
+3. FILTER_VIEW   — the developer wants to filter the board by priority.
+4. INSIGHT       — a question, analysis, standup, recommendation, risk review, or just conversation.
+   Put your complete answer in "summary". You MAY use light Markdown here (bold, \`code\`, "- " bullets,
+   "1." numbered lists) — it renders nicely. Be specific and reference their actual tasks by name.
+5. NONE          — you couldn't act; explain why in "summary".
+
+OUTPUT CONTRACT — read carefully:
+Respond with ONLY a single raw JSON object. No code fences, no prose before or after.
+It MUST match this schema exactly:
+{
+  "intent": "CREATE_TASKS" | "UPDATE_TASKS" | "FILTER_VIEW" | "INSIGHT" | "NONE",
+  "payload": {
+    "tasks": [
+      {
+        "title": string,
+        "priority": "High" | "Medium" | "Low",
+        "status": "To Do" | "In Progress" | "Testing" | "Done",
+        "description": string,
+        "startDate": string (ISO 8601),
+        "endDate": string (ISO 8601),
+        "durationDays": number,
+        "tags": [{ "name": string, "color": string (hex, e.g. "#9ef5a3") }]
+      }
+    ],
+    "updates": [
+      { "match": string, "status": "To Do"|"In Progress"|"Testing"|"Done", "priority": "High"|"Medium"|"Low" }
+    ],
+    "filter": { "priority": "High" | "Medium" | "Low" }
+  },
+  "summary": string
+}
+Rules:
+- payload.tasks ONLY for CREATE_TASKS. payload.updates ONLY for UPDATE_TASKS (each item's "match" is the
+  existing task's title; include only the fields you're changing). payload.filter ONLY for FILTER_VIEW.
+- For INSIGHT or NONE, omit payload (or null) and put everything in "summary".
+- "summary" is always your friendly explanation, in your voice as the PM.
+- Never invent tasks for UPDATE_TASKS — only reference titles that appear in the board context.
+
+CURRENT BOARD CONTEXT (the developer's existing tasks): ${ctx}
+
+${transcript ? `CONVERSATION SO FAR:\n${transcript}\n` : ''}DEVELOPER'S LATEST MESSAGE:
+${message}`;
+}
+
+// Pull the AIAction object out of whatever Claude printed. Claude was told to
+// emit raw JSON, but we defend against stray prose / code fences just in case.
+function extractAction(text) {
+  if (!text) return null;
+  let s = text.trim();
+
+  // Strip a ```json ... ``` fence if the model added one.
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) s = fence[1].trim();
+
+  // Grab the outermost { ... } span.
+  const first = s.indexOf('{');
+  const last = s.lastIndexOf('}');
+  if (first === -1 || last === -1 || last < first) return null;
+
+  try {
+    return JSON.parse(s.slice(first, last + 1));
+  } catch {
+    return null;
+  }
+}
+
+// Models the UI is allowed to request (prevents arbitrary --model injection).
+const ALLOWED_MODELS = new Set(['haiku', 'sonnet']);
+
+// Spawn `claude -p`, feed the prompt via stdin (avoids all shell-escaping pain
+// with a large multi-line prompt), and resolve with the parsed AIAction.
+function askClaude(prompt, model) {
+  return new Promise((resolve) => {
+    const useModel = ALLOWED_MODELS.has(model) ? model : MODEL;
+    // `--output-format json` makes stdout exactly one JSON envelope:
+    //   { type:'result', subtype:'success', result:'<model text>', is_error:false, ... }
+    // No permission bypass: this task only asks Claude to WRITE JSON, never to
+    // run a tool. In headless `-p` mode any tool call is auto-denied (it can't
+    // prompt without a TTY), so the run can't hang and can't touch your system.
+    const args = [
+      '-p',
+      '--output-format', 'json',
+      '--model', useModel,
+    ];
+
+    // On Windows, `claude` is a `.cmd` shim, so it must go through the shell.
+    const child = spawn('claude', args, {
+      cwd: PROJECT,
+      env: process.env,
+      shell: true,
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let done = false;
+
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      try { child.kill(); } catch {}
+      resolve({ intent: 'NONE', summary: 'Claude took too long to respond. Try again.' });
+    }, TIMEOUT_MS);
+
+    child.stdout.on('data', (d) => { stdout += d.toString(); });
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    child.on('error', (err) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      console.error('[ai-server] failed to spawn claude:', err.message);
+      resolve({
+        intent: 'NONE',
+        summary: "I couldn't start Claude Code. Is the `claude` CLI installed and logged in?",
+      });
+    });
+
+    child.on('close', (code) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+
+      // Unwrap the --output-format json envelope to get the model's text.
+      let modelText = stdout;
+      try {
+        const env = JSON.parse(stdout);
+        if (env && typeof env.result === 'string') modelText = env.result;
+      } catch {
+        // stdout wasn't the envelope (older CLI / extra logging) — use it raw.
+      }
+
+      const action = extractAction(modelText);
+      if (action && action.intent) {
+        resolve(action);
+      } else {
+        console.error(`[ai-server] no valid AIAction (exit ${code}). stderr:`, stderr.slice(-500));
+        resolve({
+          intent: 'NONE',
+          summary: modelText && modelText.trim()
+            ? modelText.trim().slice(0, 600)
+            : 'Claude replied, but I could not parse a task command from it.',
+        });
+      }
+    });
+
+    // Hand Claude the prompt and close stdin so it starts working.
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); }
+      catch (e) { reject(e); }
+    });
+    req.on('error', reject);
+  });
+}
+
+function sendJson(res, status, obj) {
+  const body = JSON.stringify(obj);
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(body);
+}
+
+http
+  .createServer(async (req, res) => {
+    const url = req.url.split('?')[0];
+
+    if (req.method === 'OPTIONS') return sendJson(res, 204, {});
+
+    if (url === '/api/ai' && req.method === 'POST') {
+      let body;
+      try {
+        body = await readBody(req);
+      } catch {
+        return sendJson(res, 400, { intent: 'NONE', summary: 'Bad request body.' });
+      }
+      const message = (body.message || '').toString().trim();
+      if (!message) return sendJson(res, 400, { intent: 'NONE', summary: 'Empty message.' });
+
+      console.log(`[ai-server] → ${message.slice(0, 80)}`);
+      const action = await askClaude(buildPrompt({ message, currentContext: body.currentContext, history: body.history }), body.model);
+      console.log(`[ai-server] ← ${action.intent}`);
+      return sendJson(res, 200, action);
+    }
+
+    if (url === '/api/health') return sendJson(res, 200, { ok: true, model: MODEL });
+
+    sendJson(res, 404, { intent: 'NONE', summary: 'Not found.' });
+  })
+  .listen(PORT, '127.0.0.1', () => {
+    console.log(`\n  DevTracker AI server — Claude Code is the brain`);
+    console.log(`  Listening on http://localhost:${PORT}  (model: ${MODEL}, localhost-only)`);
+    console.log(`  Make sure you're logged in:  claude  (then /login if needed)\n`);
+  });

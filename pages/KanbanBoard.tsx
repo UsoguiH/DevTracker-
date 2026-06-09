@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { MoreHorizontal, Plus, Clock, MessageSquare, CheckSquare, X, History, Percent } from 'lucide-react';
-import { USERS } from '../constants';
 import { Task, Status, WorkflowStatus, DEFAULT_WORKFLOW } from '../types';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -16,12 +15,13 @@ interface KanbanBoardProps {
 
 // Extracted Card Component for cleaner separation of drag logic vs visual logic
 const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDragging: boolean; onClick: () => void; columnColor: string; }) => {
+    // Light pastel chips with dark text — readable on the cream/white card.
     const getPriorityColor = (priority: string) => {
         switch (priority) {
-            case 'High': return 'bg-orange-900/40 text-orange-400 border border-orange-900';
-            case 'Medium': return 'bg-yellow-900/40 text-yellow-400 border border-yellow-900';
-            case 'Low': return 'bg-green-900/40 text-green-400 border border-green-900';
-            default: return 'bg-gray-800 text-gray-400';
+            case 'High': return 'bg-primary/10 text-primary border border-primary/25';
+            case 'Medium': return 'bg-amber-100 text-amber-700 border border-amber-200';
+            case 'Low': return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+            default: return 'bg-surface-strong text-body border border-hairline';
         }
     };
 
@@ -53,55 +53,55 @@ const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDr
         <div
             onClick={onClick}
             className={`
-                bg-surface border p-4 rounded-xl shadow-sm group relative
+                bg-surface-card border p-4 rounded-lg group relative
                 overflow-hidden select-none w-full
-                ${isOverdue ? 'border-red-500/40 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]' : isDueToday ? 'border-amber-500/30' : 'border-border'}
+                ${isOverdue ? 'border-error/40' : isDueToday ? 'border-amber-300' : 'border-hairline'}
                 ${isDragging
-                    ? 'shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] ring-1 ring-primary bg-surface-highlight scale-105 z-50'
-                    : 'hover:border-primary/50 hover:bg-surface-highlight hover:-translate-y-1 hover:shadow-xl transition-all duration-200'
+                    ? 'shadow-[0_12px_28px_-12px_rgba(38,37,30,0.35)] ring-1 ring-primary scale-[1.02] z-50'
+                    : 'hover:border-primary/50 hover:-translate-y-0.5 transition-all duration-200'
                 }
             `}
         >
-            {/* Status Color Bar — turns red if overdue */}
+            {/* Status color bar — turns red if overdue */}
             <div
-                className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl transition-all duration-300"
-                style={{ background: isOverdue ? '#EF4444' : isDueToday ? '#F59E0B' : columnColor }}
+                className="absolute top-0 left-0 right-0 h-1 rounded-t-lg transition-all duration-300"
+                style={{ background: isOverdue ? '#cf2d56' : isDueToday ? '#c08532' : columnColor }}
             ></div>
 
             <div className="flex justify-between items-start mb-3 pt-2">
-                <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
+                <span className={`px-2 py-1 rounded text-[10px] font-semibold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
                     {task.priority}
                 </span>
                 <div className="flex items-center gap-1.5">
                     {isOverdue && (
-                        <span className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        <span className="text-[9px] font-bold text-error bg-error/10 border border-error/25 px-1.5 py-0.5 rounded uppercase tracking-wider">
                             Overdue
                         </span>
                     )}
                     {isDueToday && (
-                        <span className="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        <span className="text-[9px] font-bold text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded uppercase tracking-wider">
                             Due Today
                         </span>
                     )}
                     {task.status === 'In Progress' && !isOverdue && !isDueToday && (
-                        <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">IN DEV</span>
+                        <span className="text-[10px] font-mono text-tl-read bg-tl-read/15 px-2 py-0.5 rounded">IN DEV</span>
                     )}
                 </div>
-                <button className="text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="text-muted-soft hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity">
                     <MoreHorizontal size={14} />
                 </button>
             </div>
 
-            <h3 className={`font-semibold text-sm text-gray-100 mb-2 leading-snug ${task.status === 'Done' ? 'line-through text-gray-500' : ''}`}>
+            <h3 className={`font-semibold text-sm mb-2 leading-snug ${task.status === 'Done' ? 'line-through text-muted-soft' : 'text-ink'}`}>
                 {task.title}
             </h3>
 
-            {task.status !== 'Done' && <p className="text-xs text-gray-500 mb-4 line-clamp-2">{task.description}</p>}
+            {task.status !== 'Done' && <p className="text-xs text-muted mb-4 line-clamp-2">{task.description}</p>}
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-4">
                 {task.tags.map((tag, i) => (
-                    <span key={i} className={`text-[10px] px-2 py-0.5 rounded border ${tag.color}`}>
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded border border-hairline bg-canvas-soft text-body">
                         {tag.name}
                     </span>
                 ))}
@@ -110,37 +110,36 @@ const TaskCard = ({ task, isDragging, onClick, columnColor }: { task: Task; isDr
             {/* Progress Bar (Visible if > 0) */}
             {(task.progress || 0) > 0 && (
                 <div className="mb-4">
-                    <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <div className="flex justify-between text-[10px] text-muted mb-1">
                         <span className="flex items-center gap-1"><Percent size={10} /> Progress</span>
                         <span>{task.progress}%</span>
                     </div>
-                    <div className="h-1 w-full bg-background rounded-full overflow-hidden">
-                        <div className="h-full bg-primary/70 rounded-full" style={{ width: `${task.progress}%` }}></div>
+                    <div className="h-1 w-full bg-surface-strong rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${task.progress}%` }}></div>
                     </div>
                 </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-border pt-3 mt-auto">
+            <div className="flex items-center justify-between border-t border-hairline pt-3 mt-auto">
                 <div className="flex -space-x-2">
                     {task.assignees.map((u, i) => (
-                        <img key={i} src={u.avatar} alt={u.name} className={`w-6 h-6 rounded-full border-2 border-surface ${task.status === 'Done' ? 'grayscale opacity-50' : ''}`} />
+                        <img key={i} src={u.avatar} alt={u.name} className={`w-6 h-6 rounded-full border-2 border-surface-card ${task.status === 'Done' ? 'grayscale opacity-50' : ''}`} />
                     ))}
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                    <div className="flex items-center gap-1 text-muted text-xs">
                         <Clock size={12} />
                         <span>{task.estimatedTime}</span>
                     </div>
-                    {/* Subtask Indicator */}
                     {task.subtasks && task.subtasks.length > 0 && (
-                        <div className="flex items-center gap-1 text-gray-500 text-xs" title={`${task.subtasks.filter(s => s.completed).length}/${task.subtasks.length} Subtasks`}>
+                        <div className="flex items-center gap-1 text-muted text-xs" title={`${task.subtasks.filter(s => s.completed).length}/${task.subtasks.length} Subtasks`}>
                             <CheckSquare size={12} />
                             <span>{task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}</span>
                         </div>
                     )}
                     {task.comments && task.comments.length > 0 && (
-                        <div className="flex items-center gap-1 text-gray-500 text-xs hover:text-white transition-colors">
+                        <div className="flex items-center gap-1 text-muted text-xs hover:text-ink transition-colors">
                             <MessageSquare size={12} />
                             <span>{task.comments.length}</span>
                         </div>
@@ -160,19 +159,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
 
     const handleDragEnd = (result: DropResult) => {
         const { destination, source, draggableId } = result;
-
-        if (!destination) {
-            return;
-        }
-
-        if (
-            destination.droppableId === source.droppableId &&
-            destination.index === source.index
-        ) {
-            return;
-        }
-
-        // Call update if status changed
+        if (!destination) return;
+        if (destination.droppableId === source.droppableId && destination.index === source.index) return;
         if (destination.droppableId !== source.droppableId) {
             onMoveTask(draggableId, destination.droppableId as Status);
         }
@@ -184,7 +172,6 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
             alert("No tasks in 'Done' to archive. Complete some tasks first!");
             return;
         }
-        // Set default sprint name
         const date = new Date();
         setSprintName(`Sprint ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
         setIsCompleteModalOpen(true);
@@ -203,38 +190,38 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
         <div className="h-full flex flex-col relative">
             {/* Sprint Completion Modal */}
             {isCompleteModalOpen && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-surface border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-pop-in">
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-surface-card border border-hairline p-6 rounded-xl w-full max-w-sm animate-pop-in">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-white">Complete Sprint</h3>
-                            <button onClick={() => setIsCompleteModalOpen(false)} className="text-gray-400 hover:text-white">
+                            <h3 className="display text-lg text-ink">Complete sprint</h3>
+                            <button onClick={() => setIsCompleteModalOpen(false)} className="text-muted hover:text-ink">
                                 <X size={20} />
                             </button>
                         </div>
-                        <p className="text-sm text-gray-400 mb-4">
+                        <p className="text-sm text-body mb-4">
                             {tasks.filter(t => t.status === 'Done').length} tasks will be archived.
-                            {tasks.filter(t => t.status !== 'Done').length} tasks will remain active.
+                            {' '}{tasks.filter(t => t.status !== 'Done').length} tasks will remain active.
                         </p>
                         <form onSubmit={confirmCompleteSprint}>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Sprint Name</label>
+                            <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted mb-2">Sprint name</label>
                             <input
                                 type="text"
                                 value={sprintName}
                                 onChange={(e) => setSprintName(e.target.value)}
-                                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none mb-6"
+                                className="w-full bg-surface-card border border-hairline-strong rounded-md px-4 py-2.5 text-ink focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none mb-6"
                                 autoFocus
                             />
                             <div className="flex gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsCompleteModalOpen(false)}
-                                    className="flex-1 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-surface-highlight transition-colors"
+                                    className="flex-1 py-2 rounded-md text-sm font-medium text-body hover:bg-canvas-soft border border-hairline-strong transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2 rounded-xl text-sm font-bold bg-primary text-black hover:opacity-90 transition-opacity"
+                                    className="flex-1 py-2 rounded-md text-sm font-medium bg-primary text-on-primary hover:bg-primary-active transition-colors"
                                 >
                                     Complete
                                 </button>
@@ -246,29 +233,22 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 animate-slide-up">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-1">Sprint Board</h1>
-                    <p className="text-sm text-gray-400">Manage your current active tasks</p>
+                    <h1 className="display text-[28px] text-ink mb-1">Sprint board</h1>
+                    <p className="text-sm text-body">Manage your current active tasks</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex -space-x-2 mr-4">
-                        {/* 
-                 {USERS.map(user => (
-                     <img key={user.id} src={user.avatar} className="w-8 h-8 rounded-full border-2 border-background" alt={user.name}/>
-                 ))} 
-                 */}
-                    </div>
                     <button
                         onClick={onViewHistory}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-surface-highlight rounded-full transition-colors mr-2"
+                        className="p-2 text-muted hover:text-ink hover:bg-canvas-soft rounded-md transition-colors"
                         title="View Sprint History"
                     >
                         <History size={20} />
                     </button>
                     <button
                         onClick={handleCompleteClick}
-                        className="bg-white text-black px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-200 transition-colors shadow-lg hover:shadow-white/20"
+                        className="bg-ink text-canvas px-4 py-2 rounded-md font-medium text-sm hover:opacity-90 transition-opacity"
                     >
-                        Complete Sprint
+                        Complete sprint
                     </button>
                 </div>
             </div>
@@ -280,10 +260,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                             const columnTasks = tasks.filter((task) => task.status === column.name);
 
                             return (
-                                <div
-                                    key={column.id}
-                                    className="flex-1 flex flex-col min-w-[300px] h-full"
-                                >
+                                <div key={column.id} className="flex-1 flex flex-col min-w-[300px] h-full">
                                     {/* Column Header */}
                                     <div className="flex items-center justify-between mb-4 px-2">
                                         <div className="flex items-center gap-3">
@@ -291,12 +268,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                                                 className={`w-2 h-2 rounded-full ${column.type === 'active' ? 'animate-pulse' : ''}`}
                                                 style={{ background: column.color }}
                                             />
-                                            <h2 className="text-xs font-bold tracking-widest uppercase text-gray-400">{column.name}</h2>
-                                            <span className="px-2 py-0.5 rounded-full bg-surface-highlight text-[10px] font-bold text-gray-300">
+                                            <h2 className="text-xs font-semibold tracking-widest uppercase text-muted">{column.name}</h2>
+                                            <span className="px-2 py-0.5 rounded-full bg-surface-strong text-[10px] font-semibold text-body">
                                                 {columnTasks.length}
                                             </span>
                                         </div>
-                                        <button className="text-gray-500 hover:text-white transition-colors">
+                                        <button className="text-muted hover:text-ink transition-colors">
                                             <MoreHorizontal size={16} />
                                         </button>
                                     </div>
@@ -307,7 +284,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                                             <div
                                                 {...provided.droppableProps}
                                                 ref={provided.innerRef}
-                                                className={`flex-1 overflow-y-auto pr-2 custom-scrollbar rounded-xl transition-colors duration-300 flex flex-col gap-3 ${snapshot.isDraggingOver ? 'bg-white/5 border border-dashed border-white/20' : ''}`}
+                                                className={`flex-1 overflow-y-auto pr-2 custom-scrollbar rounded-lg transition-colors duration-300 flex flex-col gap-3 ${snapshot.isDraggingOver ? 'bg-ink/[0.04] border border-dashed border-hairline-strong' : ''}`}
                                             >
                                                 {columnTasks.map((task, index) => (
                                                     <Draggable key={task.id} draggableId={task.id} index={index}>
@@ -340,13 +317,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                                                 ))}
                                                 {provided.placeholder}
 
-                                                {/* Add Task Button inside column */}
                                                 <button
                                                     onClick={() => onAddTask(column.name as Status)}
-                                                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-dashed border-border text-gray-500 hover:text-white hover:border-primary/50 hover:bg-surface-highlight transition-all mt-2 group"
+                                                    className="flex items-center justify-center gap-2 w-full py-3 rounded-lg border border-dashed border-hairline-strong text-muted hover:text-ink hover:border-primary/50 hover:bg-canvas-soft transition-all mt-2 group"
                                                 >
                                                     <Plus size={16} className="group-hover:scale-125 transition-transform" />
-                                                    <span className="text-xs font-bold">Add Task</span>
+                                                    <span className="text-xs font-semibold">Add task</span>
                                                 </button>
                                             </div>
                                         )}
