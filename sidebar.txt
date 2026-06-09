@@ -1,0 +1,2013 @@
+/* Dashboard Sidebar */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+align-items: center;
+padding: 28px 16px;
+gap: 28px;
+
+position: absolute;
+width: 212px;
+height: 924px;
+left: 1383px;
+top: 536px;
+
+background: #FFFFFF;
+border-right: 1px solid rgba(0, 0, 0, 0.1);
+
+
+/* Frame */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+margin: 0 auto;
+width: 180px;
+height: 472px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px 8px 28px;
+
+width: 180px;
+height: 56px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* SnowUI Logo
+
+<p>SnowUI logo © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 6px;
+
+width: 105px;
+height: 28px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* SnowUI Logo
+
+<p>SnowUI logo © SnowUI</p>
+*/
+
+width: 28px;
+height: 28px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Frame */
+
+position: absolute;
+left: 0%;
+right: 0%;
+top: 0%;
+bottom: 0%;
+
+
+
+/* Rectangle 40 */
+
+position: absolute;
+left: 0%;
+right: 0%;
+top: 35%;
+bottom: 35%;
+
+background: #4C98FD;
+
+
+/* Rectangle 39 */
+
+position: absolute;
+left: 35%;
+right: 35%;
+top: 0%;
+bottom: 0%;
+
+background: linear-gradient(0deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), #4C98FD;
+background-blend-mode: screen, normal;
+
+
+/* Rectangle 42 */
+
+position: absolute;
+left: 10.25%;
+right: 10.25%;
+top: 10.25%;
+bottom: 10.25%;
+
+background: linear-gradient(0deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)), #4C98FD;
+background-blend-mode: soft-light, normal;
+
+
+/* Rectangle 41 */
+
+position: absolute;
+left: 10.25%;
+right: 10.25%;
+top: 10.25%;
+bottom: 10.25%;
+
+background: linear-gradient(0deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), #4C98FD;
+background-blend-mode: overlay, normal;
+
+
+/* Union */
+
+position: absolute;
+left: 15%;
+right: 15%;
+top: 15%;
+bottom: 15%;
+
+/* White/100% */
+background: #FFFFFF;
+
+
+/* SnowUI Logo
+
+<p>SnowUI logo © SnowUI</p>
+*/
+
+width: 71px;
+height: 12px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Union */
+
+position: absolute;
+left: 78.87%;
+right: 0%;
+top: 0%;
+bottom: 0%;
+
+background: linear-gradient(0deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)), linear-gradient(0deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)), #4F507F;
+background-blend-mode: plus-lighter, normal, normal;
+
+
+/* Union */
+
+position: absolute;
+left: 0%;
+right: 25.35%;
+top: 0%;
+bottom: 0%;
+
+background: #4F507F;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+background: rgba(0, 0, 0, 0.04);
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* ChartPieSlice
+
+graphs, graphing, charts, statistics, circle, analyze, analysis, math &amp; finance
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.37%;
+right: 9.37%;
+top: 9.38%;
+bottom: 9.36%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* ShoppingBagOpen
+
+ecommerce, market, basket, buying, checkout, places, locations, commerce
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 18.75%;
+bottom: 68.75%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.38%;
+right: 9.38%;
+top: 15.62%;
+bottom: 15.62%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* FolderNotch
+
+directory, directories, files, folders, office &amp; editing
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 50%;
+top: 21.88%;
+bottom: 59.38%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.38%;
+right: 9.38%;
+top: 18.75%;
+bottom: 15.62%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* IdentificationBadge
+
+license, credentials, nametag, user, verification, people
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 18.75%;
+right: 18.75%;
+top: 12.5%;
+bottom: 12.5%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 15.62%;
+right: 15.62%;
+top: 9.38%;
+bottom: 9.38%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* IdentificationCard
+
+license, badge, credentials, nametag, user, verification, people
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 18.75%;
+bottom: 18.75%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.38%;
+right: 9.38%;
+top: 15.62%;
+bottom: 15.62%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 6;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* UsersThree
+
+user, group, team, community, people, profiles, accounts, contacts, people
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 21.88%;
+bottom: 28.12%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 3.12%;
+right: 3.12%;
+top: 18.75%;
+bottom: 12.39%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 7;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Notebook
+
+notes, note-taking, memorandum, journal, diary, logs, logbook, office &amp; editing
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 15.62%;
+right: 68.75%;
+top: 15.62%;
+bottom: 15.62%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 12.5%;
+bottom: 12.5%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Frame
+
+<p>Frame © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 12px;
+gap: 12px;
+
+width: 180px;
+height: 48px;
+
+border-radius: 16px;
+
+/* Inside auto layout */
+flex: none;
+order: 8;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* ChatsTeardrop
+
+send, sent, messages, messaging, sms, texting, comment, bubble, communication
+*/
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 35.98%;
+right: 9.38%;
+top: 31.3%;
+bottom: 12.5%;
+
+background: #000000;
+opacity: 0.08;
+
+
+/* Vector */
+
+position: absolute;
+left: 6.25%;
+right: 6.25%;
+top: 9.38%;
+bottom: 9.38%;
+
+background: #000000;
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 120px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Text */
+
+width: 120px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* ByeWind
+
+<p>ByeWind © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+flex-wrap: wrap;
+align-items: center;
+align-content: flex-start;
+padding: 8px 12px;
+gap: 8px;
+
+margin: 0 auto;
+width: 180px;
+height: 40px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Icon
+
+<p>Icon © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 24px;
+height: 24px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* AvatarByewind
+
+<p>ByeWind © SnowUI</p>
+
+<p>ByeWind</p>
+*/
+
+width: 24px;
+height: 24px;
+
+background: rgba(0, 0, 0, 0.04);
+border-radius: 80px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Frame */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 4px;
+
+position: absolute;
+left: 0%;
+right: 0%;
+top: 0%;
+bottom: 0%;
+
+background: url(ByeWind Avatar);
+
+
+/* Text
+
+<p>Text © SnowUI</p>
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: flex-start;
+padding: 0px;
+
+width: 58px;
+height: 20px;
+
+border-radius: 12px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 58px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #000000;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Dropdown-B
+
+Please detach instance for editing.
+*/
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 8px;
+
+position: absolute;
+width: 240px;
+height: 256px;
+left: 1403px;
+top: 1234px;
+
+/* White/100% */
+background: #FFFFFF;
+/* Layer Shadow */
+box-shadow: 0px 0px 16px rgba(0, 0, 0, 0.1);
+border-radius: 8px;
+
+
+/* Avatar-Name-Text */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 4px;
+gap: 8px;
+
+width: 224px;
+height: 44px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* ByeWind */
+
+width: 24px;
+height: 24px;
+
+background: url(image);
+border-radius: 800px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Frame 1 */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+
+width: 184px;
+height: 36px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* ByeWind */
+
+width: 184px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: #1C1C1C;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Email@gmail.com */
+
+width: 184px;
+height: 16px;
+
+/* 12 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 16px;
+/* identical to box height, or 133% */
+font-feature-settings: 'ss01' on, 'cv01' on;
+
+color: rgba(28, 28, 28, 0.4);
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 4px 0px;
+
+width: 224px;
+height: 8px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Line 5 */
+
+width: 224px;
+height: 0px;
+
+/* Black/5% */
+border: 1px solid rgba(0, 0, 0, 0.05);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* UserCircle-r */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.38%;
+right: 9.38%;
+top: 9.38%;
+bottom: 9.38%;
+
+background: #1C1C1C;
+
+
+/* Text */
+
+width: 67px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+display: flex;
+align-items: center;
+
+/* Black/100% */
+color: #1C1C1C;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* GearSix-r */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 6.33%;
+right: 6.33%;
+top: 8.16%;
+bottom: 8.16%;
+
+background: #1C1C1C;
+
+
+/* Text */
+
+width: 55px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+display: flex;
+align-items: center;
+
+/* Black/100% */
+color: #1C1C1C;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* ChatText-r */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 9.38%;
+right: 9.38%;
+top: 18.75%;
+bottom: 6.75%;
+
+background: #1C1C1C;
+
+
+/* Text */
+
+width: 68px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+display: flex;
+align-items: center;
+
+/* Black/100% */
+color: #1C1C1C;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* UsersThree-r */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 1.56%;
+right: 1.56%;
+top: 17.24%;
+bottom: 12.5%;
+
+background: #1C1C1C;
+
+
+/* Text */
+
+width: 54px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+display: flex;
+align-items: center;
+
+/* Black/100% */
+color: #1C1C1C;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 4px 0px;
+
+width: 224px;
+height: 8px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 6;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Line 5 */
+
+width: 224px;
+height: 0px;
+
+/* Black/5% */
+border: 1px solid rgba(0, 0, 0, 0.05);
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 7;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* SignOut-r */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 12.5%;
+bottom: 12.5%;
+
+background: #1C1C1C;
+
+
+/* Text */
+
+width: 57px;
+height: 20px;
+
+/* 14 Regular */
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 20px;
+/* identical to box height, or 143% */
+display: flex;
+align-items: center;
+
+/* Black/100% */
+color: #1C1C1C;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+display: none;
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 8;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+display: none;
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 9;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 4px 0px;
+
+display: none;
+width: 224px;
+height: 8px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 10;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* _Dropdown Item */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 8px;
+gap: 8px;
+
+display: none;
+width: 224px;
+height: 36px;
+
+border-radius: 8px;
+
+/* Inside auto layout */
+flex: none;
+order: 11;
+align-self: stretch;
+flex-grow: 0;

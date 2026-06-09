@@ -327,8 +327,13 @@ export function MorphPanel({ onAIAction, currentTasks }: MorphPanelProps) {
                     }
                 }}
                 className={cx(
-                    "relative flex flex-col items-center overflow-hidden shadow-2xl transition-colors backdrop-blur-3xl",
-                    showForm ? "border border-white/15 bg-zinc-950/80 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]" : "border border-white/20 bg-transparent"
+                    // transition-colors ONLY — framer-motion owns size/transform animation;
+                    // a CSS transition-all here fights it and causes jank.
+                    "relative flex flex-col items-center overflow-hidden transition-colors backdrop-blur-3xl",
+                    showForm
+                        ? "border border-white/15 bg-zinc-950/90 shadow-[0_8px_40px_-8px_rgba(38,37,30,0.45)]"
+                        // Collapsed dock: solid ink pill so it pops on the cream canvas
+                        : "border border-ink/20 bg-ink shadow-[0_6px_24px_-6px_rgba(38,37,30,0.5)] cursor-pointer"
                 )}
                 initial={false}
                 animate={{
@@ -378,7 +383,8 @@ function DockBar() {
                                 transition={{ duration: 0.2 }}
                                 className={isThinking ? "animate-pulse" : ""}
                             >
-                                <ColorOrb dimension="24px" tones={{ base: "oklch(22.64% 0 0)" }} />
+                                {/* bright orb so it glows against the ink pill */}
+                                <ColorOrb dimension="24px" />
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -386,7 +392,7 @@ function DockBar() {
 
                 <Button
                     type="button"
-                    className={cn("flex h-fit flex-1 justify-end rounded-full px-2 !py-0.5 transition-opacity font-medium tracking-tight", showForm ? "opacity-0 pointer-events-none" : "opacity-100")}
+                    className={cn("flex h-fit flex-1 justify-end rounded-full px-2 !py-0.5 transition-opacity font-semibold tracking-tight text-white hover:text-white hover:bg-transparent", showForm ? "opacity-0 pointer-events-none" : "opacity-100")}
                     variant="ghost"
                 >
                     <span className="truncate">Ask AI</span>

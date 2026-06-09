@@ -6,6 +6,8 @@ import KanbanBoard from './pages/KanbanBoard';
 import Dashboard from './pages/Dashboard';
 import Timeline from './pages/Timeline';
 import TaskDetailDrawer from './components/TaskDetailDrawer';
+import Layout from './components/Layout';
+import { MorphPanel } from './components/ui/ai-input';
 
 /**
  * Dev-only preview harness (no Supabase login needed) so reskinned screens can
@@ -73,6 +75,25 @@ if (view === 'projects') {
       <Timeline tasks={mockTasks.filter(t => t.projectId === 'p1')} />
     </div>
   );
+} else if (view === 'sidebar' || view === 'layout') {
+  const proj: any = { id: 'p1', key: 'CA', name: 'Cafe App', description: 'Mobile ordering + loyalty for a coffee chain.', createdAt: '2026-03-01' };
+  const LayoutPreview = () => {
+    const [tab, setTab] = React.useState('dashboard');
+    const [q, setQ] = React.useState('');
+    return (
+      <Layout
+        activeTab={tab} setActiveTab={setTab} searchQuery={q} setSearchQuery={setQ}
+        onAddTask={() => {}} onOpenFocusMode={() => {}} activeProject={proj}
+        onUpdateProject={() => {}} user={user as any} tasks={mockTasks.filter(t => t.projectId === 'p1')} onViewTask={() => {}}
+      >
+        <div className="flex items-center justify-center h-full text-muted">
+          <p className="text-lg">Page content for <span className="text-ink font-semibold">{tab}</span></p>
+        </div>
+        <MorphPanel onAIAction={() => {}} currentTasks={[]} />
+      </Layout>
+    );
+  };
+  content = <LayoutPreview />;
 } else if (view === 'task-drawer') {
   const drawerTask: any = {
     id: 't2', projectId: 'p1',

@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, startTransition } from 'react';
+import { motion } from 'motion/react';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -11,7 +12,9 @@ import {
   FolderOpen,
   Zap,
   PanelRight,
-  BrainCircuit
+  BrainCircuit,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { User, Project, Task } from '../types';
 import ProjectHUD from './ProjectHUD';
@@ -48,6 +51,17 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [isHUDOpen, setIsHUDOpen] = useState(false);
   const [isAlertsPanelOpen, setIsAlertsPanelOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // The sidebar highlights from this local mirror so the sliding pill moves
+  // INSTANTLY; the heavy page swap is deferred via startTransition so it can't
+  // block the indicator animation.
+  const [localTab, setLocalTab] = useState(activeTab);
+  useEffect(() => { setLocalTab(activeTab); }, [activeTab]);
+  const navigate = (id: string) => {
+    setLocalTab(id);                            // urgent: pill slides now
+    startTransition(() => setActiveTab(id));    // deferred: page mounts after
+  };
 
   const alertCounts = useMemo(() => {
     const today = new Date();
@@ -64,109 +78,150 @@ const Layout: React.FC<LayoutProps> = ({
     return { overdue, dueToday, total: overdue + dueToday };
   }, [tasks]);
 
-  const NavItem = ({ id, icon: Icon, label, disabled = false, onClick, special = false }: { id?: string; icon: any; label: string; disabled?: boolean; onClick?: () => void; special?: boolean }) => {
-    const isActive = activeTab === id;
-
-    const base = 'group relative flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-300 mb-3';
-    const variant = special
-      ? 'bg-ink text-canvas hover:opacity-90'
-      : isActive
-        ? 'bg-primary text-on-primary'
-        : disabled
-          ? 'text-muted-soft cursor-not-allowed'
-          : 'text-muted hover:text-ink hover:bg-canvas-soft';
-
+  // ── SnowUI-style nav row: rounded pill, icon + label, sliding active bg ────
+  const NavRow = ({ id, icon: Icon, label, disabled = false, onClick, index = 0 }:
+    { id?: string; icon: any; label: string; disabled?: boolean; onClick?: () => void; index?: number }) => {
+    const isActive = !!id && localTab === id;
     return (
-      <button
-        onClick={() => {
-          if (onClick) onClick();
-          else if (id && !disabled) setActiveTab(id);
-        }}
+      <motion.button
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.05 + index * 0.04, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+        onClick={() => { if (onClick) onClick(); else if (id && !disabled) navigate(id); }}
         disabled={disabled}
-        className={`${base} ${variant}`}
+        title={collapsed ? label : undefined}
+        className={`group relative w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-2xl text-[14px] transition-colors duration-200
+          ${disabled
+            ? 'text-muted-soft cursor-not-allowed'
+            : isActive
+              ? 'text-ink'
+              : 'text-body hover:text-ink hover:bg-ink/[0.03]'}`}
       >
-        <Icon size={22} strokeWidth={isActive || special ? 2.4 : 2} />
-
-        {/* Tooltip */}
-        {!disabled && (
-          <div className="absolute left-full ml-4 px-3 py-1.5 bg-ink border border-ink rounded-md text-[13px] text-canvas font-medium whitespace-nowrap opacity-0 translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none z-50">
-            {label}
-            <div className="absolute top-1/2 -left-1 -mt-1 border-[4px] border-transparent border-r-ink border-b-ink transform rotate-45"></div>
-          </div>
+        {/* sliding active pill */}
+        {isActive && (
+          <motion.span
+            layoutId="nav-active"
+            className="absolute inset-0 rounded-2xl bg-ink/[0.05]"
+            transition={{ type: 'spring', stiffness: 520, damping: 40 }}
+          />
         )}
-      </button>
+        {/* active accent bar (brand orange) */}
+        {isActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-primary z-10" />
+        )}
+        <Icon size={20} strokeWidth={isActive ? 2.4 : 2} className={`relative z-10 shrink-0 ${isActive ? 'text-primary' : ''}`} />
+        {!collapsed && <span className="relative z-10 truncate">{label}</span>}
+      </motion.button>
     );
   };
 
+  const Caption = ({ children }: { children: React.ReactNode }) =>
+    collapsed ? <div className="h-2" /> : (
+      <p className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-soft">{children}</p>
+    );
+
   return (
     <div className="flex min-h-screen bg-canvas text-ink font-sans overflow-hidden selection:bg-primary/20">
-      {/* Sidebar */}
-      <aside className="w-20 bg-surface-card border-r border-hairline flex flex-col items-center py-6 z-50">
-        {/* Brand mark */}
-        <div className="mb-6 w-9 h-9 rounded-md bg-primary flex items-center justify-center">
-          <span className="w-3 h-3 rounded-[3px] bg-on-primary" />
-        </div>
-
-        {/* Nav Items */}
-        <div className="flex-1 w-full flex flex-col items-center">
-          <NavItem id="projects" icon={FolderOpen} label="Projects" />
-          <div className="w-8 h-px bg-hairline my-3"></div>
-          <NavItem id="dashboard" icon={LayoutDashboard} label="Dashboard" disabled={!activeProject} />
-          <NavItem id="kanban" icon={KanbanSquare} label="Kanban Board" disabled={!activeProject} />
-          <NavItem id="timeline" icon={CalendarDays} label="Timeline" disabled={!activeProject} />
-          <NavItem id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} />
-
-          <div className="mt-3">
-            <NavItem icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} special={true} />
+      {/* ── Sidebar (SnowUI style) ──────────────────────────────────────── */}
+      <motion.aside
+        animate={{ width: collapsed ? 76 : 212 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+        className="shrink-0 h-screen bg-surface-card border-r border-hairline flex flex-col justify-between py-7 px-4 z-50 overflow-hidden"
+      >
+        {/* Top: brand + nav */}
+        <div className="flex flex-col gap-1 min-w-0">
+          {/* Brand */}
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} h-8 mb-5 px-1`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-7 h-7 rounded-lg bg-primary inline-flex items-center justify-center shrink-0">
+                <span className="w-3 h-3 rounded-[3px] bg-on-primary" />
+              </span>
+              {!collapsed && <span className="text-[16px] font-semibold tracking-tight truncate">DevTracker</span>}
+            </div>
+            {!collapsed && (
+              <button onClick={() => setCollapsed(true)} className="text-muted-soft hover:text-ink transition-colors" title="Collapse">
+                <ChevronsLeft size={18} />
+              </button>
+            )}
           </div>
+          {collapsed && (
+            <button onClick={() => setCollapsed(false)} className="self-center mb-1 text-muted-soft hover:text-ink transition-colors" title="Expand">
+              <ChevronsRight size={18} />
+            </button>
+          )}
+
+          <Caption>Menu</Caption>
+          <NavRow id="projects" icon={FolderOpen} label="Projects" index={0} />
+          <NavRow id="dashboard" icon={LayoutDashboard} label="Dashboard" disabled={!activeProject} index={1} />
+          <NavRow id="kanban" icon={KanbanSquare} label="Kanban" disabled={!activeProject} index={2} />
+          <NavRow id="timeline" icon={CalendarDays} label="Timeline" disabled={!activeProject} index={3} />
+          <NavRow id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} index={4} />
+
+          <Caption>Focus</Caption>
+          <NavRow icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} index={5} />
         </div>
 
-        {/* Bottom Actions */}
-        <div className="mt-auto">
-          <NavItem id="settings" icon={Settings} label="Settings" />
+        {/* Bottom: settings + user */}
+        <div className="flex flex-col gap-1 min-w-0">
+          <NavRow id="settings" icon={Settings} label="Settings" index={6} />
+          <div className="h-px bg-hairline my-2 mx-1" />
+          <button
+            onClick={() => navigate('settings')}
+            title="Account"
+            className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-2.5'} px-2 py-2 rounded-xl hover:bg-ink/[0.03] transition-colors group`}
+          >
+            <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover bg-surface-strong border border-hairline shrink-0" />
+            {!collapsed && (
+              <div className="text-left leading-tight min-w-0">
+                <p className="text-[14px] text-ink truncate group-hover:text-primary transition-colors">{user.name}</p>
+                <p className="text-[12px] text-muted truncate">{user.handle}</p>
+              </div>
+            )}
+          </button>
         </div>
-      </aside>
+      </motion.aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+      {/* ── Main Content ─────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0">
         {/* Top Bar */}
         <header className="h-20 border-b border-hairline bg-canvas/80 backdrop-blur-sm flex items-center justify-between px-8 z-40 sticky top-0">
-          {/* Search */}
-          <div className="flex items-center gap-4 flex-1 max-w-xl">
-            {activeTab === 'kanban' && (
-              <div className="relative w-full group animate-fade-in">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-300" size={19} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={activeProject ? `Search in ${activeProject.name}...` : 'Search projects...'}
-                  className="w-full bg-surface-card border border-hairline-strong rounded-md py-2.5 pl-12 pr-4 text-sm text-ink placeholder-muted-soft focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300"
-                />
-              </div>
+          {/* Title / breadcrumb */}
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-[15px] font-semibold text-ink truncate">
+              {activeProject ? activeProject.name : 'DevTracker'}
+            </span>
+            {activeProject && (
+              <span className="text-[12px] font-medium text-muted bg-surface-strong px-2 py-0.5 rounded-full">{activeProject.key}</span>
             )}
           </div>
 
           {/* Right Actions */}
           <div className="flex items-center gap-5">
             {activeTab === 'kanban' && (
-              <div className="flex items-center gap-5 animate-fade-in">
-                <button
-                  onClick={onAddTask}
-                  disabled={!activeProject}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-300
-                        ${activeProject
-                      ? 'bg-primary text-on-primary hover:bg-primary-active cursor-pointer'
-                      : 'bg-surface-strong border border-hairline text-muted-soft cursor-not-allowed'}`}
-                >
-                  <Plus size={18} />
-                  <span className="hidden sm:inline">New Task</span>
-                </button>
-                <div className="w-px h-8 bg-hairline"></div>
+              <div className="relative w-full max-w-xs group animate-fade-in">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-300" size={18} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search tasks..."
+                  className="w-full bg-surface-card border border-hairline-strong rounded-md py-2 pl-11 pr-4 text-sm text-ink placeholder-muted-soft focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300"
+                />
               </div>
             )}
 
-            {/* HUD Toggle */}
+            {activeTab === 'kanban' && (
+              <button
+                onClick={onAddTask}
+                disabled={!activeProject}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all duration-300
+                  ${activeProject ? 'bg-primary text-on-primary hover:bg-primary-active cursor-pointer' : 'bg-surface-strong border border-hairline text-muted-soft cursor-not-allowed'}`}
+              >
+                <Plus size={18} />
+                <span className="hidden sm:inline">New Task</span>
+              </button>
+            )}
+
             {activeProject && (
               <button
                 onClick={() => setIsHUDOpen(!isHUDOpen)}
@@ -193,17 +248,6 @@ const Layout: React.FC<LayoutProps> = ({
                 <span className="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full"></span>
               )}
             </button>
-
-            <div
-              className="flex items-center gap-3 pl-2 cursor-pointer group"
-              onClick={() => setActiveTab('settings')}
-            >
-              <div className="text-right hidden md:block">
-                <div className="text-sm font-semibold text-ink group-hover:text-primary transition-colors">{user.name}</div>
-                <div className="text-xs text-muted">{user.handle}</div>
-              </div>
-              <img src={user.avatar} alt="Profile" className="w-10 h-10 rounded-full border border-hairline-strong group-hover:border-primary transition-all duration-300" />
-            </div>
           </div>
         </header>
 
