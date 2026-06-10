@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { AIChatView, ChatMsg } from './pages/AICommandCenter';
+import AICommandCenter, { AIChatView, ChatMsg } from './pages/AICommandCenter';
 import Projects from './pages/Projects';
 import KanbanBoard from './pages/KanbanBoard';
 import Dashboard from './pages/Dashboard';
@@ -119,6 +119,37 @@ if (view === 'projects') {
       <Whiteboard projectId="p1" projectName="Cafe App" tasks={mockTasks.filter(t => t.projectId === 'p1')} />
     </div>
   );
+} else if (view === 'app-chat') {
+  // Claude chat mounted inside the real app shell (sidebar + header), tab = AI Manager.
+  const proj: any = { id: 'p1', key: 'CA', name: 'Cafe App', description: 'Mobile ordering + loyalty.', createdAt: '2026-03-01' };
+  const AppChat = () => {
+    const [tab, setTab] = React.useState('ai');
+    const [q, setQ] = React.useState('');
+    return (
+      <Layout activeTab={tab} setActiveTab={setTab} searchQuery={q} setSearchQuery={setQ}
+        onAddTask={() => {}} onOpenFocusMode={() => {}} activeProject={proj}
+        onUpdateProject={() => {}} user={user as any} tasks={mockTasks.filter(t => t.projectId === 'p1')} onViewTask={() => {}}>
+        <AIChatView tasks={[]} onAction={() => {}} onBack={() => {}} previewSeed={params.get('state') === 'convo' ? seed : undefined}
+          storageKey="devtrack-ai-chats-preview" />
+      </Layout>
+    );
+  };
+  content = <AppChat />;
+} else if (view === 'app-hub') {
+  // Full AI Manager hub (launcher + tool views) inside the real app shell.
+  const proj: any = { id: 'p1', key: 'CA', name: 'Cafe App', description: 'Mobile ordering + loyalty.', createdAt: '2026-03-01' };
+  const AppHub = () => {
+    const [tab, setTab] = React.useState('ai');
+    const [q, setQ] = React.useState('');
+    return (
+      <Layout activeTab={tab} setActiveTab={setTab} searchQuery={q} setSearchQuery={setQ}
+        onAddTask={() => {}} onOpenFocusMode={() => {}} activeProject={proj}
+        onUpdateProject={() => {}} user={user as any} tasks={mockTasks.filter(t => t.projectId === 'p1')} onViewTask={() => {}}>
+        <AICommandCenter tasks={mockTasks.filter(t => t.projectId === 'p1')} project={proj} user={user as any} onAIAction={() => {}} />
+      </Layout>
+    );
+  };
+  content = <AppHub />;
 } else if (view === 'task-drawer') {
   const drawerTask: any = {
     id: 't2', projectId: 'p1',
@@ -155,7 +186,7 @@ if (view === 'projects') {
   );
 } else {
   content = (
-    <div style={{ height: '100vh', background: '#212121' }}>
+    <div style={{ height: '100vh', background: '#FAF9F5' }}>
       <AIChatView tasks={[]} onAction={() => {}} onBack={() => {}} previewSeed={params.get('state') === 'convo' ? seed : undefined} />
     </div>
   );

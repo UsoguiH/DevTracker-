@@ -62,6 +62,15 @@ const STYLES = `
   }
   .group:hover .ai-scanner { animation: ai-scan-and-fix 3s infinite ease-in-out; }
   .group:hover .bug-node   { animation: bug-resolve 3s infinite ease-in-out; }
+  @keyframes claude-think { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(0.8) rotate(20deg); } }
+  @keyframes claude-shimmer { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+  .claude-thinking-star { animation: claude-think 1.4s ease-in-out infinite; transform-origin: center; }
+  .claude-shimmer-text {
+    background: linear-gradient(90deg, #9C998D 0%, #9C998D 35%, #29261B 50%, #9C998D 65%, #9C998D 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: claude-shimmer 2s linear infinite;
+  }
 `;
 
 // ─── Analysis ─────────────────────────────────────────────────────────────────
@@ -286,17 +295,32 @@ const Launcher: React.FC<{ onSelect: (v: ActiveView) => void }> = ({ onSelect })
 
 export interface ChatMsg { id: string; role: 'user' | 'ai' | 'thinking' | 'action'; text: string; action?: AIAction; confirmed?: boolean; }
 
-// ── DevTracker AI Chat — styled to feel exactly like ChatGPT ──────────────────
-// Dark canvas (#212121), centered 768px conversation column, user messages in a
-// gray pill on the right, assistant replies as bare full-width text on the left,
-// and a rounded pill composer with a +, a growing textarea, and a circular
-// up-arrow send button. Empty state is the ChatGPT "hero": a centered heading
-// with the composer and suggestion chips beneath it.
+// ── DevTracker AI Chat — styled to feel exactly like Claude.ai ────────────────
+// Full-screen ivory canvas (#FAF9F5), warm beige sidebar with Recents, serif
+// assistant prose (Tiempos-style), beige user bubbles on the right, and the
+// rounded white composer with +, Tools, a model picker and a terracotta
+// square send button. Empty state is the Claude "hero": the starburst with a
+// serif greeting and the composer beneath it.
 
-// Claude starburst mark, rendered in Claude's terracotta.
-const PmLogo: React.FC<{ size?: number }> = ({ size = 28 }) => (
-  <ClaudeLogo size={size} className="text-[#D97757]" />
-);
+// Claude.ai light palette (shared with the Space copilot dock).
+const CL = {
+  bg: '#FAF9F5',
+  sidebar: '#F2F0E8',
+  surface: '#FFFFFF',
+  bubble: '#F0EEE5',
+  hover: '#EBE8DE',
+  hairline: '#E8E6DC',
+  hairlineStrong: '#DAD7CB',
+  ink: '#29261B',
+  body: '#52504A',
+  muted: '#73716C',
+  faint: '#9C998D',
+  terracotta: '#D97757',
+  send: '#C96442',
+  sendHover: '#B85B3D',
+};
+
+const CL_SERIF = '"Source Serif 4", "Tiempos Text", Georgia, serif';
 
 // ── Tiny Markdown renderer (bold, italic, inline code, bullet/numbered lists,
 // headings) so the PM's replies render like ChatGPT without a heavy dependency.
@@ -306,8 +330,8 @@ const renderInline = (text: string, kp: string): React.ReactNode[] => {
   let last = 0, m: RegExpExecArray | null, i = 0;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
-    if (m[2] !== undefined) nodes.push(<strong key={`${kp}b${i}`} className="font-semibold text-white">{m[2]}</strong>);
-    else if (m[3] !== undefined) nodes.push(<code key={`${kp}c${i}`} className="px-1.5 py-0.5 rounded bg-white/10 text-[13px] font-mono">{m[3]}</code>);
+    if (m[2] !== undefined) nodes.push(<strong key={`${kp}b${i}`} className="font-semibold">{m[2]}</strong>);
+    else if (m[3] !== undefined) nodes.push(<code key={`${kp}c${i}`} className="px-1.5 py-0.5 rounded bg-[#29261B]/[0.06] text-[13px] font-mono text-[#B3500F]">{m[3]}</code>);
     else if (m[4] !== undefined) nodes.push(<em key={`${kp}i${i}`}>{m[4]}</em>);
     last = m.index + m[0].length; i++;
   }
@@ -348,8 +372,8 @@ const Markdown: React.FC<{ text: string }> = ({ text }) => {
 interface Convo { id: string; title: string; msgs: ChatMsg[]; }
 
 const MODELS = [
-  { id: 'haiku', name: 'DevTracker PM', desc: 'Fast — great for planning' },
-  { id: 'sonnet', name: 'DevTracker PM Max', desc: 'Smarter — deeper reasoning' },
+  { id: 'haiku', name: 'Claude Haiku 4.5', desc: 'Fastest for daily planning' },
+  { id: 'sonnet', name: 'Claude Sonnet 4.6', desc: 'Smartest for complex work' },
 ] as const;
 
 export const AIChatView: React.FC<{
@@ -357,16 +381,41 @@ export const AIChatView: React.FC<{
   onAction: (a: AIAction) => void;
   onBack: () => void;
   previewSeed?: ChatMsg[]; // dev-only: pre-populate the thread for screenshots
-}> = ({ tasks, onAction, onBack, previewSeed }) => {
+  storageKey?: string;     // persist conversations to localStorage under this key
+}> = ({ tasks, onAction, onBack, previewSeed, storageKey }) => {
   const titleFrom = (ms: ChatMsg[]) => ms.find(m => m.role === 'user')?.text.slice(0, 38) || 'New chat';
 
-  // ── Conversations (threads) — makes New chat + history fully functional ──
-  const [convos, setConvos] = useState<Convo[]>(() =>
-    previewSeed && previewSeed.length
-      ? [{ id: 'seed', title: titleFrom(previewSeed), msgs: previewSeed }]
-      : [{ id: 'c0', title: 'New chat', msgs: [] }]
-  );
-  const [activeId, setActiveId] = useState<string>(previewSeed?.length ? 'seed' : 'c0');
+  // ── Conversations (threads) — persisted so Recents survive reloads ──────
+  const initialRef = useRef<Convo[] | null>(null);
+  if (initialRef.current === null) {
+    if (previewSeed && previewSeed.length) {
+      initialRef.current = [{ id: 'seed', title: titleFrom(previewSeed), msgs: previewSeed }];
+    } else {
+      let saved: Convo[] | null = null;
+      if (storageKey) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storageKey) || 'null');
+          if (Array.isArray(parsed) && parsed.length && parsed.every(c => c && typeof c.id === 'string' && Array.isArray(c.msgs))) {
+            saved = parsed;
+          }
+        } catch { /* corrupted storage — start fresh */ }
+      }
+      initialRef.current = saved ?? [{ id: 'c0', title: 'New chat', msgs: [] }];
+    }
+  }
+  const [convos, setConvos] = useState<Convo[]>(initialRef.current);
+  const [activeId, setActiveId] = useState<string>(initialRef.current[0].id);
+
+  // Save on every change (drop transient "thinking" rows, keep the last 30 chats).
+  useEffect(() => {
+    if (!storageKey || previewSeed) return;
+    try {
+      const toSave = convos
+        .map(c => ({ ...c, msgs: c.msgs.filter(m => m.role !== 'thinking') }))
+        .slice(0, 30);
+      localStorage.setItem(storageKey, JSON.stringify(toSave));
+    } catch { /* storage full/unavailable — chat still works, just not persisted */ }
+  }, [convos, storageKey, previewSeed]);
 
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -505,38 +554,43 @@ export const AIChatView: React.FC<{
   // Small inline icon button for message hover actions.
   const IconBtn: React.FC<{ title: string; onClick: () => void; children: React.ReactNode }> = ({ title, onClick, children }) => (
     <button type="button" title={title} onClick={onClick}
-      className="w-7 h-7 rounded-md flex items-center justify-center text-[#b4b4b4] hover:bg-white/10 hover:text-white transition-colors">
+      className="w-7 h-7 rounded-md flex items-center justify-center text-[#73716C] hover:bg-[#29261B]/[0.06] hover:text-[#29261B] transition-colors">
       {children}
     </button>
   );
 
-  // The rounded composer — textarea on top, a functional toolbar row beneath.
+  // The Claude.ai composer — white card, textarea on top, +/Tools and the
+  // model picker + terracotta square send button beneath.
   const canSend = !!input.trim() && !thinking;
   const composer = (
-    <div className="bg-[#303030] rounded-[28px] px-2.5 pt-3 pb-2 shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
+    <div className="rounded-2xl"
+      style={{ background: CL.surface, border: `1px solid ${CL.hairlineStrong}`, boxShadow: '0 4px 24px -12px rgba(41,38,27,0.18)' }}>
       <input ref={fileRef} type="file" className="hidden" onChange={onPickFile} />
       <textarea
         ref={taRef}
         value={input}
         onChange={e => setInput(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-        placeholder="Message your project manager"
+        placeholder={isEmpty ? 'How can I help you today?' : 'Reply to Claude…'}
         rows={1}
         disabled={thinking}
-        className="w-full resize-none bg-transparent text-[16px] text-[#ececec] placeholder-[#8e8e8e] outline-none leading-6 px-2.5 mb-1"
-        style={{ maxHeight: 200 }}
+        className="w-full resize-none bg-transparent text-[15px] outline-none leading-6 px-4 pt-3.5 pb-1 placeholder:text-[#A6A39A]"
+        style={{ maxHeight: 200, color: CL.ink }}
       />
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 px-2.5 pb-2.5 pt-1">
         {/* + menu */}
         <div className="relative">
           <button type="button" title="Add" onClick={() => setMenu(menu === 'plus' ? null : 'plus')}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[#ececec] hover:bg-white/10 transition-colors">
-            <Plus size={20} />
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#F5F4EE]"
+            style={{ border: `1px solid ${CL.hairline}`, color: CL.muted }}>
+            <Plus size={15} />
           </button>
           {menu === 'plus' && (
-            <div className="absolute bottom-full mb-2 left-0 z-50 w-56 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
-              <button onClick={() => fileRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
-                <Paperclip size={16} /> Attach a file
+            <div className="absolute bottom-full mb-2 left-0 z-50 w-56 rounded-xl p-1.5"
+              style={{ background: CL.surface, border: `1px solid ${CL.hairline}`, boxShadow: '0 12px 32px -8px rgba(41,38,27,0.18)' }}>
+              <button onClick={() => fileRef.current?.click()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-[#F5F4EE] transition-colors" style={{ color: CL.body }}>
+                <Paperclip size={15} /> Attach a file
               </button>
             </div>
           )}
@@ -544,29 +598,56 @@ export const AIChatView: React.FC<{
         {/* Tools menu */}
         <div className="relative">
           <button type="button" onClick={() => setMenu(menu === 'tools' ? null : 'tools')}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-full text-[14px] text-[#ececec] hover:bg-white/10 transition-colors">
-            <SlidersHorizontal size={17} /> Tools
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] transition-colors hover:bg-[#F5F4EE]"
+            style={{ border: `1px solid ${CL.hairline}`, color: CL.muted }}>
+            <SlidersHorizontal size={14} /> Tools
           </button>
           {menu === 'tools' && (
-            <div className="absolute bottom-full mb-2 left-0 z-50 w-60 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
+            <div className="absolute bottom-full mb-2 left-0 z-50 w-60 rounded-xl p-1.5"
+              style={{ background: CL.surface, border: `1px solid ${CL.hairline}`, boxShadow: '0 12px 32px -8px rgba(41,38,27,0.18)' }}>
               {TOOLS.map(t => (
-                <button key={t.label} onClick={() => send(t.prompt)} className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
+                <button key={t.label} onClick={() => send(t.prompt)}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-[#F5F4EE] transition-colors" style={{ color: CL.body }}>
                   {t.label}
                 </button>
               ))}
             </div>
           )}
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1">
           <button type="button" title="Dictate" onClick={toggleMic}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: listening ? '#ef4444' : 'transparent', color: listening ? '#fff' : '#ececec' }}>
-            <Mic size={19} className={listening ? 'animate-pulse' : ''} />
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#F5F4EE]"
+            style={{ background: listening ? '#ef4444' : 'transparent', color: listening ? '#fff' : CL.muted }}>
+            <Mic size={15} className={listening ? 'animate-pulse' : ''} />
           </button>
+          {/* Model picker — lives in the composer like Claude.ai */}
+          <div className="relative">
+            <button onClick={() => setMenu(menu === 'model' ? null : 'model')}
+              className="flex items-center gap-1 px-2 h-8 rounded-lg text-[12.5px] transition-colors hover:bg-[#F5F4EE]" style={{ color: CL.faint }}>
+              {MODELS.find(x => x.id === model)?.name} <ChevronDown size={12} />
+            </button>
+            {menu === 'model' && (
+              <div className="absolute bottom-full mb-2 right-0 z-50 w-64 rounded-xl p-1.5"
+                style={{ background: CL.surface, border: `1px solid ${CL.hairline}`, boxShadow: '0 12px 32px -8px rgba(41,38,27,0.18)' }}>
+                {MODELS.map(mo => (
+                  <button key={mo.id} onClick={() => { setModel(mo.id); setMenu(null); }}
+                    className="w-full flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-[#F5F4EE] transition-colors text-left">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium" style={{ color: CL.ink }}>{mo.name}</p>
+                      <p className="text-xs" style={{ color: CL.faint }}>{mo.desc}</p>
+                    </div>
+                    {model === mo.id && <Check size={15} className="mt-0.5" style={{ color: CL.terracotta }} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={() => send()} disabled={!canSend} title="Send"
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: canSend ? '#ffffff' : '#676767' }}>
-            <ArrowUp size={20} style={{ color: canSend ? '#000' : '#2f2f2f' }} />
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+            style={canSend ? { background: CL.send, color: '#fff' } : { background: '#E8E5DB', color: '#B3B0A4', cursor: 'not-allowed' }}
+            onMouseEnter={e => { if (canSend) e.currentTarget.style.background = CL.sendHover; }}
+            onMouseLeave={e => { if (canSend) e.currentTarget.style.background = CL.send; }}>
+            <ArrowUp size={15} strokeWidth={2.5} />
           </button>
         </div>
       </div>
@@ -578,7 +659,8 @@ export const AIChatView: React.FC<{
     if (m.role === 'user') {
       return (
         <div key={m.id} className="group flex flex-col items-end">
-          <div className="max-w-[80%] bg-[#303030] text-[#ececec] rounded-3xl px-5 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap">
+          <div className="max-w-[85%] rounded-xl px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap"
+            style={{ background: CL.bubble, color: CL.ink }}>
             {m.text}
           </div>
           <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -591,7 +673,7 @@ export const AIChatView: React.FC<{
     if (m.role === 'ai') {
       return (
         <div key={m.id} className="group">
-          <div className="text-[15px] leading-7 text-[#ececec]"><Markdown text={m.text} /></div>
+          <div className="text-[16px]" style={{ fontFamily: CL_SERIF, color: CL.ink, lineHeight: 1.65 }}><Markdown text={m.text} /></div>
           <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <IconBtn title="Copy" onClick={() => copyMsg(m)}>{copiedId === m.id ? <Check size={15} /> : <Copy size={15} />}</IconBtn>
             <IconBtn title="Regenerate" onClick={() => regenerate(m.id)}><RefreshCw size={15} /></IconBtn>
@@ -601,9 +683,9 @@ export const AIChatView: React.FC<{
     }
     if (m.role === 'thinking') {
       return (
-        <div key={m.id} className="flex items-center">
-          <motion.span className="w-3.5 h-3.5 rounded-full bg-[#ececec]"
-            animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1.1, repeat: Infinity }} />
+        <div key={m.id} className="flex items-center gap-2.5">
+          <ClaudeLogo size={15} className="claude-thinking-star shrink-0" style={{ color: CL.terracotta }} />
+          <span className="claude-shimmer-text text-[13px] font-medium">Thinking…</span>
         </div>
       );
     }
@@ -611,35 +693,40 @@ export const AIChatView: React.FC<{
       const taskList = m.action.payload?.tasks as any[] | undefined;
       return (
         <div key={m.id} className="group space-y-3">
-          <div className="text-[15px] leading-7 text-[#ececec]"><Markdown text={m.text} /></div>
-          <div className="rounded-2xl border border-white/10 overflow-hidden bg-[#2a2a2a] max-w-xl">
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 text-xs font-semibold text-gray-300 uppercase tracking-wider">
-              <ClipboardList size={14} className="text-gray-400" /> Proposed tasks
+          <div className="text-[16px]" style={{ fontFamily: CL_SERIF, color: CL.ink, lineHeight: 1.65 }}><Markdown text={m.text} /></div>
+          <div className="rounded-xl overflow-hidden max-w-xl" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+            <div className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider"
+              style={{ borderBottom: `1px solid ${CL.hairline}`, color: CL.muted }}>
+              <ClaudeLogo size={12} style={{ color: CL.terracotta }} /> Proposed tasks
             </div>
             <div className="p-2 space-y-1">
               {(taskList || []).map((t, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-white/[0.04]">
-                  <span className="text-[11px] font-bold w-4 text-center text-gray-500">{i + 1}</span>
-                  <span className="flex-1 text-sm text-[#ececec] truncate">{t.title}</span>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.priority === 'High' ? 'text-red-300 bg-red-500/15' : t.priority === 'Medium' ? 'text-amber-300 bg-amber-500/15' : 'text-gray-300 bg-white/10'}`}>
+                <div key={i} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-[#F5F4EE]">
+                  <span className="text-[11px] font-bold w-4 text-center" style={{ color: CL.faint }}>{i + 1}</span>
+                  <span className="flex-1 text-sm truncate" style={{ color: CL.ink }}>{t.title}</span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.priority === 'High' ? 'text-[#B3500F] bg-[#D97757]/15' : t.priority === 'Medium' ? 'text-amber-700 bg-amber-500/15' : 'text-[#73716C] bg-[#29261B]/[0.06]'}`}>
                     {t.priority}
                   </span>
                 </div>
               ))}
             </div>
             {!m.confirmed ? (
-              <div className="flex gap-2 px-3 py-3 border-t border-white/10">
+              <div className="flex gap-2 px-3 py-3" style={{ borderTop: `1px solid ${CL.hairline}` }}>
                 <button onClick={() => { onAction(m.action!); setMsgs(p => p.map(x => x.id === m.id ? { ...x, confirmed: true } : x)); }}
-                  className="flex-1 py-2 rounded-full text-sm font-semibold bg-white text-black hover:bg-gray-200 transition-colors">
+                  className="flex-1 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                  style={{ background: CL.send }}
+                  onMouseEnter={e => { e.currentTarget.style.background = CL.sendHover; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = CL.send; }}>
                   Add to board
                 </button>
                 <button onClick={() => setMsgs(p => p.filter(x => x.id !== m.id))}
-                  className="px-4 py-2 rounded-full text-sm font-medium text-gray-300 border border-white/15 hover:bg-white/10 transition-colors">
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-[#F0EEE5]"
+                  style={{ color: CL.body, border: `1px solid ${CL.hairlineStrong}` }}>
                   Dismiss
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-4 py-3 text-sm text-emerald-400 border-t border-white/10">
+              <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#618A5C]" style={{ borderTop: `1px solid ${CL.hairline}` }}>
                 <CheckCircle2 size={15} /> Added to your board.
               </div>
             )}
@@ -655,62 +742,80 @@ export const AIChatView: React.FC<{
   };
 
   return (
-    <div className="flex h-full bg-[#212121] rounded-3xl overflow-hidden text-[#ececec]" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="flex h-full w-full overflow-hidden" style={{ background: CL.bg, color: CL.ink, fontFamily: 'Inter, sans-serif' }}>
+      <style>{`
+        @keyframes claude-think { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(0.8) rotate(20deg); } }
+        @keyframes claude-shimmer { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+        .claude-thinking-star { animation: claude-think 1.4s ease-in-out infinite; transform-origin: center; }
+        .claude-shimmer-text {
+          background: linear-gradient(90deg, #9C998D 0%, #9C998D 35%, #29261B 50%, #9C998D 65%, #9C998D 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+          animation: claude-shimmer 2s linear infinite;
+        }
+      `}</style>
       {/* Click-away layer for any open dropdown */}
       {menu && <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />}
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       {sidebarOpen && (
-        <aside className="hidden md:flex w-[260px] shrink-0 flex-col bg-[#171717]">
-          <div className="flex items-center justify-between px-3 h-12">
-            <button onClick={() => setSidebarOpen(false)} title="Close sidebar" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-              <PanelLeft size={20} />
+        <aside className="hidden md:flex w-[268px] shrink-0 flex-col" style={{ background: CL.sidebar, borderRight: `1px solid ${CL.hairline}` }}>
+          <div className="flex items-center justify-between pl-4 pr-2 h-12">
+            <button onClick={onBack} title="Back to AI hub" className="flex items-center gap-2">
+              <ClaudeLogo size={16} style={{ color: CL.terracotta }} />
+              <span className="text-[16px] font-semibold tracking-[-0.02em]" style={{ color: CL.ink }}>Claude</span>
             </button>
-            <button onClick={newChat} title="New chat" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-              <SquarePen size={19} />
+            <button onClick={() => setSidebarOpen(false)} title="Close sidebar"
+              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#29261B]/[0.06] transition-colors" style={{ color: CL.muted }}>
+              <PanelLeft size={17} />
             </button>
           </div>
 
-          <div className="px-2 space-y-0.5">
-            <button onClick={newChat} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] hover:bg-white/10 transition-colors">
-              <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center"><SquarePen size={14} className="text-black" /></span>
+          <div className="px-2 space-y-0.5 mt-1">
+            <button onClick={newChat} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] font-medium transition-colors hover:bg-[#EBE8DE]"
+              style={{ color: CL.send }}>
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ background: CL.terracotta }}>
+                <Plus size={14} strokeWidth={2.5} />
+              </span>
               New chat
             </button>
             {!searchOpen ? (
-              <button onClick={() => setSearchOpen(true)} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] hover:bg-white/10 transition-colors">
-                <span className="w-6 h-6 flex items-center justify-center"><Search size={16} /></span>
+              <button onClick={() => setSearchOpen(true)} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[14px] transition-colors hover:bg-[#EBE8DE]"
+                style={{ color: CL.body }}>
+                <span className="w-6 h-6 flex items-center justify-center"><Search size={15} /></span>
                 Search chats
               </button>
             ) : (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5">
-                <Search size={16} className="text-[#8e8e8e]" />
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: '#EBE8DE' }}>
+                <Search size={15} style={{ color: CL.faint }} />
                 <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Search chats"
-                  className="flex-1 bg-transparent text-sm outline-none placeholder-[#8e8e8e]" />
-                <button onClick={() => { setSearchOpen(false); setSearch(''); }}><X size={15} className="text-[#8e8e8e] hover:text-white" /></button>
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#A6A39A]" style={{ color: CL.ink }} />
+                <button onClick={() => { setSearchOpen(false); setSearch(''); }}><X size={14} style={{ color: CL.faint }} /></button>
               </div>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto mt-3 px-2 min-h-0" style={{ scrollbarWidth: 'none' }}>
-            <p className="px-2.5 py-2 text-xs font-medium text-[#8e8e8e]">Chats</p>
+          <div className="flex-1 overflow-y-auto mt-4 px-2 min-h-0" style={{ scrollbarWidth: 'none' }}>
+            <p className="px-2.5 py-1.5 text-xs font-medium" style={{ color: CL.faint }}>Recents</p>
             {visibleConvos.length === 0 && (
-              <p className="px-2.5 py-2 text-xs text-[#6b6b6b]">{search ? 'No matches.' : 'No chats yet.'}</p>
+              <p className="px-2.5 py-1.5 text-xs" style={{ color: CL.faint }}>{search ? 'No matches.' : 'No chats yet.'}</p>
             )}
             {visibleConvos.map(c => (
               <button key={c.id} onClick={() => openConvo(c.id)}
-                className={`group w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[14px] transition-colors text-left ${c.id === activeId ? 'bg-white/10' : 'hover:bg-white/10'}`}>
+                className={`group w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13.5px] transition-colors text-left ${c.id === activeId ? 'bg-[#EBE8DE]' : 'hover:bg-[#EBE8DE]'}`}
+                style={{ color: CL.body }}>
                 <span className="flex-1 truncate">{c.title}</span>
-                <MoreHorizontal size={16} className="opacity-0 group-hover:opacity-60 shrink-0" />
+                <MoreHorizontal size={15} className="opacity-0 group-hover:opacity-50 shrink-0" />
               </button>
             ))}
           </div>
 
-          <div className="p-2 border-t border-white/5">
-            <button onClick={onBack} className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors">
-              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-black text-[11px] font-bold">You</span>
+          <div className="p-2" style={{ borderTop: `1px solid ${CL.hairline}` }}>
+            <button onClick={onBack} className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#EBE8DE] transition-colors">
+              <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold" style={{ background: CL.ink }}>Y</span>
               <div className="text-left leading-tight">
-                <p className="text-[14px]">You</p>
-                <p className="text-xs text-[#8e8e8e]">Claude Code · Free</p>
+                <p className="text-[13.5px]" style={{ color: CL.ink }}>You</p>
+                <p className="text-xs" style={{ color: CL.faint }}>Claude Code · Free plan</p>
               </div>
             </button>
           </div>
@@ -720,51 +825,38 @@ export const AIChatView: React.FC<{
       {/* ── Main column ─────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="flex items-center gap-1 px-3 h-12 shrink-0">
+        <div className="relative z-10 flex items-center gap-1 px-3 h-12 shrink-0">
           {!sidebarOpen && (
             <>
-              <button onClick={() => setSidebarOpen(true)} title="Open sidebar" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-                <PanelLeft size={20} />
+              <button onClick={() => setSidebarOpen(true)} title="Open sidebar"
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#29261B]/[0.06] transition-colors" style={{ color: CL.muted }}>
+                <PanelLeft size={17} />
               </button>
-              <button onClick={newChat} title="New chat" className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
-                <SquarePen size={19} />
+              <button onClick={newChat} title="New chat"
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#29261B]/[0.06] transition-colors" style={{ color: CL.muted }}>
+                <SquarePen size={16} />
               </button>
             </>
           )}
-          {/* Model switcher */}
-          <div className="relative">
-            <button onClick={() => setMenu(menu === 'model' ? null : 'model')}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors font-semibold text-[18px]">
-              {MODELS.find(x => x.id === model)?.name} <ChevronDown size={17} className="text-[#8e8e8e]" />
-            </button>
-            {menu === 'model' && (
-              <div className="absolute top-full mt-1 left-0 z-50 w-64 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
-                {MODELS.map(mo => (
-                  <button key={mo.id} onClick={() => { setModel(mo.id); setMenu(null); }}
-                    className="w-full flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-left">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{mo.name}</p>
-                      <p className="text-xs text-[#8e8e8e]">{mo.desc}</p>
-                    </div>
-                    {model === mo.id && <Check size={16} className="mt-0.5 text-emerald-400" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {!isEmpty && (
+            <span className="px-2 text-[14px] font-medium truncate" style={{ color: CL.ink }}>{active.title}</span>
+          )}
           {/* Account menu */}
           <div className="relative ml-auto">
             <button onClick={() => setMenu(menu === 'account' ? null : 'account')}
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-black text-xs font-bold">
-              You
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: CL.ink }}>
+              Y
             </button>
             {menu === 'account' && (
-              <div className="absolute top-full mt-1 right-0 z-50 w-56 bg-[#2a2a2a] border border-white/10 rounded-2xl p-1.5 shadow-xl">
-                <button onClick={() => { setMenu(null); onBack(); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors">
-                  <LogOut size={16} /> Back to AI hub
+              <div className="absolute top-full mt-1 right-0 z-50 w-56 rounded-xl p-1.5"
+                style={{ background: CL.surface, border: `1px solid ${CL.hairline}`, boxShadow: '0 12px 32px -8px rgba(41,38,27,0.18)' }}>
+                <button onClick={() => { setMenu(null); onBack(); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm hover:bg-[#F5F4EE] transition-colors" style={{ color: CL.body }}>
+                  <LogOut size={15} /> Back to AI hub
                 </button>
-                <button onClick={clearAll} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-white/10 transition-colors">
-                  <Trash2 size={16} /> Clear conversations
+                <button onClick={clearAll}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#C2410C] hover:bg-[#F5F4EE] transition-colors">
+                  <Trash2 size={15} /> Clear conversations
                 </button>
               </div>
             )}
@@ -772,17 +864,18 @@ export const AIChatView: React.FC<{
         </div>
 
         {isEmpty ? (
-          // ── Hero / empty state ────────────────────────────────────────────
-          <div className="flex-1 flex flex-col items-center justify-center px-4 -mt-8">
-            <PmLogo size={40} />
-            <h1 className="text-[28px] sm:text-[32px] font-semibold mt-4 mb-7 text-center">
+          // ── Hero / empty state — the Claude.ai greeting ───────────────────
+          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
+            <h1 className="text-[28px] sm:text-[32px] text-center mb-8" style={{ fontFamily: CL_SERIF, fontWeight: 400, color: CL.ink, letterSpacing: '-0.015em' }}>
+              <ClaudeLogo size={30} className="inline-block mr-3.5 align-[-4px]" style={{ color: CL.terracotta }} />
               What can I help you ship?
             </h1>
-            <div className="w-full max-w-3xl">{composer}</div>
-            <div className="flex flex-wrap justify-center gap-2 mt-5 max-w-2xl">
+            <div className="w-full max-w-2xl">{composer}</div>
+            <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-2xl">
               {SUGGESTIONS.map(s => (
                 <button key={s} onClick={() => send(s)}
-                  className="px-4 py-2 rounded-full text-sm text-[#ececec] border border-white/15 hover:bg-white/5 transition-colors">
+                  className="px-4 py-2 rounded-xl text-[13px] transition-colors hover:bg-[#F5F4EE]"
+                  style={{ background: CL.surface, border: `1px solid ${CL.hairline}`, color: CL.body }}>
                   {s}
                 </button>
               ))}
@@ -796,10 +889,10 @@ export const AIChatView: React.FC<{
                 {msgs.map(renderMsg)}
               </div>
             </div>
-            <div className="shrink-0 pb-2 px-4">
+            <div className="shrink-0 px-4">
               <div className="max-w-3xl mx-auto">{composer}</div>
-              <p className="text-center text-[11px] text-[#8e8e8e] mt-2">
-                Powered by Claude Code · review tasks before adding them to your board.
+              <p className="text-center text-[11px] py-2" style={{ color: CL.faint }}>
+                Claude can make mistakes. Please double-check responses.
               </p>
             </div>
           </>
@@ -809,15 +902,67 @@ export const AIChatView: React.FC<{
   );
 };
 
+// ─── Claude-styled scaffolding shared by the tool views ──────────────────────
+
+// Full-height ivory page with a sticky Claude top bar and a centered column.
+const ClaudeShell: React.FC<{ title: string; onBack: () => void; children: React.ReactNode }> = ({ title, onBack, children }) => (
+  <div className="min-h-full" style={{ background: CL.bg, color: CL.ink, fontFamily: 'Inter, sans-serif' }}>
+    <div className="sticky top-0 z-20 flex items-center gap-1.5 px-3 h-12"
+      style={{ background: 'rgba(250,249,245,0.92)', backdropFilter: 'blur(8px)', borderBottom: `1px solid ${CL.hairline}` }}>
+      <button onClick={onBack}
+        className="flex items-center gap-1 pl-1.5 pr-2.5 h-8 rounded-lg text-[13px] transition-colors hover:bg-[#29261B]/[0.05]"
+        style={{ color: CL.muted }}>
+        <ChevronLeft size={15} /> AI hub
+      </button>
+      <ClaudeLogo size={13} style={{ color: CL.terracotta }} />
+      <span className="text-[13.5px] font-medium" style={{ color: CL.ink }}>{title}</span>
+    </div>
+    <div className="max-w-2xl mx-auto px-6 pt-10 pb-16">{children}</div>
+  </div>
+);
+
+const ClaudeThinking: React.FC<{ label: string }> = ({ label }) => (
+  <div className="flex items-center gap-2.5 py-1">
+    <ClaudeLogo size={15} className="claude-thinking-star shrink-0" style={{ color: CL.terracotta }} />
+    <span className="claude-shimmer-text text-[13px] font-medium">{label}</span>
+  </div>
+);
+
+const ClaudeButton: React.FC<{ onClick: () => void; disabled?: boolean; children: React.ReactNode }> = ({ onClick, disabled, children }) => (
+  <button onClick={onClick} disabled={disabled}
+    className="inline-flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-50"
+    style={{ background: CL.send }}
+    onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = CL.sendHover; }}
+    onMouseLeave={e => { e.currentTarget.style.background = CL.send; }}>
+    {children}
+  </button>
+);
+
+// Small ghost icon button for card headers (copy / regenerate).
+const GhostIconBtn: React.FC<{ title: string; onClick: () => void; children: React.ReactNode }> = ({ title, onClick, children }) => (
+  <button type="button" title={title} onClick={onClick}
+    className="w-7 h-7 rounded-md flex items-center justify-center text-[#73716C] hover:bg-[#29261B]/[0.06] hover:text-[#29261B] transition-colors">
+    {children}
+  </button>
+);
+
+const prioChip = (p?: string) =>
+  p === 'High' ? 'text-[#B3500F] bg-[#D97757]/15'
+    : p === 'Medium' ? 'text-amber-700 bg-amber-500/15'
+      : 'text-[#73716C] bg-[#29261B]/[0.06]';
+
+const serifH = (size: number): React.CSSProperties =>
+  ({ fontFamily: CL_SERIF, fontWeight: 400, color: CL.ink, letterSpacing: '-0.015em', fontSize: size, lineHeight: 1.3 });
+
 // ─── Risk Radar View ──────────────────────────────────────────────────────────
 
 const RiskRadarView: React.FC<{ tasks: Task[]; project: Project; onBack: () => void }> = ({ tasks, project, onBack }) => {
-  const ACCENT = '#9ef5a3';
   const data = useMemo(() => analyzeProject(tasks), [tasks]);
   const risk = riskScore(data);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [aiRec, setAiRec] = useState('');
   const [loadingRec, setLoadingRec] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const risks = [
     {
@@ -842,126 +987,132 @@ const RiskRadarView: React.FC<{ tasks: Task[]; project: Project; onBack: () => v
     },
   ];
 
-  const SEV_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-    high:   { color: '#ef4444', bg: '#fee2e2', label: 'HIGH' },
-    medium: { color: '#f59e0b', bg: '#fef3c7', label: 'MEDIUM' },
-    clear:  { color: '#10b981', bg: '#d1fae5', label: 'CLEAR' },
+  const SEV: Record<string, { chip: string; num: string; dot: string; label: string }> = {
+    high:   { chip: 'text-[#B3500F] bg-[#D97757]/15', num: '#C2410C', dot: '#C2410C', label: 'High' },
+    medium: { chip: 'text-amber-700 bg-amber-500/15', num: '#B45309', dot: '#D97706', label: 'Medium' },
+    clear:  { chip: 'text-[#3F6B3A] bg-[#7A9B76]/20', num: '#3F6B3A', dot: '#7A9B76', label: 'Clear' },
   };
 
   const getAiRecommendations = async () => {
     setLoadingRec(true);
     try {
-      const msg = `Risk analysis for ${project.name}: ${data.stalledTasks.length} stalled tasks, ${data.overdueTasks.length} overdue, ${data.highPriorityTodo.length} high-priority not started. Risk score: ${risk}/100. Give 3 specific, actionable recommendations to reduce project risk.`;
+      const detail = [
+        data.stalledTasks.length ? `Stalled: ${data.stalledTasks.slice(0, 5).map(t => t.title).join('; ')}` : '',
+        data.overdueTasks.length ? `Overdue: ${data.overdueTasks.slice(0, 5).map(t => t.title).join('; ')}` : '',
+        data.highPriorityTodo.length ? `High-priority not started: ${data.highPriorityTodo.slice(0, 5).map(t => t.title).join('; ')}` : '',
+      ].filter(Boolean).join('\n');
+      const msg = `Risk analysis for ${project.name} (risk score ${risk}/100, ${data.completionRate}% of active tasks complete).\n${detail}\nGive 3 specific, actionable recommendations to reduce project risk. Keep each to one or two sentences.`;
       const action = await processUserMessage(msg, tasks);
       setAiRec(action.summary || 'No recommendations generated.');
-    } catch { setAiRec('Could not connect to AI. Check edge function.'); }
+    } catch { setAiRec('Could not reach Claude — make sure the local AI server is running (npm run ai-server).'); }
     finally { setLoadingRec(false); }
   };
 
-  const riskColor = risk >= 60 ? '#ef4444' : risk >= 30 ? '#f59e0b' : ACCENT;
-  const riskLabel = risk >= 60 ? 'HIGH RISK' : risk >= 30 ? 'MODERATE' : 'HEALTHY';
+  const gaugeColor = risk >= 60 ? '#C2410C' : risk >= 30 ? '#D97757' : '#7A9B76';
+  const gaugeLabel = risk >= 60 ? 'High risk' : risk >= 30 ? 'Moderate' : 'Healthy';
+  const GR = 30, GCIRC = 2 * Math.PI * GR;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col h-full bg-[#e1e6de] rounded-3xl p-5 overflow-hidden">
-      <BackBtn onClick={onBack} accent="#10b981" />
-
-      <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#1f1f22]/10">
-        <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: '#1f1f22' }}>
-          <AlertTriangle size={16} style={{ color: ACCENT }} />
+    <ClaudeShell title="Risk Radar" onBack={onBack}>
+      {/* Serif greeting + animated score ring */}
+      <div className="flex items-center gap-6 mb-9">
+        <div className="flex-1 min-w-0">
+          <h1 style={serifH(28)} className="mb-2">
+            <ClaudeLogo size={24} className="inline-block mr-3 align-[-3px]" style={{ color: CL.terracotta }} />
+            How healthy is {project.name}?
+          </h1>
+          <p className="text-[14px]" style={{ color: CL.muted }}>
+            Claude scanned {data.totalActive} active task{data.totalActive === 1 ? '' : 's'} for stalls, overdue work and unstarted priorities.
+          </p>
         </div>
-        <div>
-          <p className="font-bold text-[#1f1f22] text-sm">Risk Radar</p>
-          <p className="text-[11px] text-[#5a6355]">Project health scan for {project.name}</p>
-        </div>
-
-        {/* Risk Gauge */}
-        <div className="ml-auto flex flex-col items-end">
-          <span className="text-2xl font-black" style={{ color: riskColor }}>{risk}</span>
-          <span className="text-[9px] font-bold tracking-widest" style={{ color: riskColor }}>{riskLabel}</span>
+        <div className="relative w-[88px] h-[88px] shrink-0">
+          <svg viewBox="0 0 72 72" className="w-full h-full -rotate-90">
+            <circle cx="36" cy="36" r={GR} fill="none" stroke="#EBE8DE" strokeWidth="6" />
+            <motion.circle cx="36" cy="36" r={GR} fill="none" stroke={gaugeColor} strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={GCIRC} initial={{ strokeDashoffset: GCIRC }} animate={{ strokeDashoffset: GCIRC * (1 - risk / 100) }}
+              transition={{ duration: 1.1, ease: [0.23, 1, 0.32, 1] }} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[22px] font-semibold leading-none" style={{ color: gaugeColor }}>{risk}</span>
+            <span className="text-[9.5px] font-medium mt-1" style={{ color: CL.faint }}>{gaugeLabel}</span>
+          </div>
         </div>
       </div>
 
-      {/* Risk Items */}
-      <div className="flex-1 overflow-y-auto space-y-2.5 min-h-0" style={{ scrollbarWidth: 'none' }}>
-        {risks.map(r => {
-          const sev = SEV_STYLE[r.severity];
+      {/* Risk cards */}
+      <div className="space-y-2.5 mb-9">
+        {risks.map((r, i) => {
+          const sev = SEV[r.severity];
           const isOpen = expanded === r.id;
           return (
-            <motion.div key={r.id} layout className="rounded-2xl overflow-hidden cursor-pointer"
-              style={{ background: sev.bg, border: `1px solid ${sev.color}30` }}
-              onClick={() => setExpanded(isOpen ? null : r.id)}>
-              <div className="flex items-center gap-3 px-4 py-3">
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: sev.color }}>
-                  {sev.label}
+            <motion.div key={r.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+              className="rounded-xl overflow-hidden" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+              <button onClick={() => setExpanded(isOpen ? null : r.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#FCFBF8] transition-colors">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full w-[60px] text-center ${sev.chip}`}>{sev.label}</span>
+                <span className="text-[14px] font-medium flex-1" style={{ color: CL.ink }}>{r.label}</span>
+                <span className="text-[15px] font-semibold tabular-nums" style={{ color: sev.num }}>
+                  {r.count !== null ? r.count : `${data.completionRate}%`}
                 </span>
-                <span className="text-sm font-semibold text-[#1f1f22] flex-1">{r.label}</span>
-                {r.count !== null && (
-                  <span className="text-lg font-black" style={{ color: sev.color }}>{r.count}</span>
-                )}
-                {r.count === null && (
-                  <span className="text-sm font-black" style={{ color: sev.color }}>{data.completionRate}%</span>
-                )}
-                <motion.span animate={{ rotate: isOpen ? 90 : 0 }} className="text-[#1f1f22]/40 text-xs">▶</motion.span>
-              </div>
+                <motion.span animate={{ rotate: isOpen ? 180 : 0 }} style={{ color: CL.faint }}><ChevronDown size={15} /></motion.span>
+              </button>
               <AnimatePresence>
                 {isOpen && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden">
-                    <div className="px-4 pb-3 text-xs text-[#1f1f22]/60 mb-2">{r.desc}</div>
-                    {r.tasks.slice(0, 4).map(t => (
-                      <div key={t.id} className="mx-4 mb-1.5 flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#1f1f22]"
-                        style={{ background: 'rgba(255,255,255,0.5)' }}>
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: sev.color }} />
-                        <span className="flex-1 truncate font-medium">{t.title}</span>
-                        <span className="text-[10px] opacity-50">{t.priority}</span>
-                      </div>
-                    ))}
-                    {r.tasks.length > 4 && <p className="px-4 pb-3 text-[10px] text-[#1f1f22]/40">+{r.tasks.length - 4} more</p>}
+                    <div className="px-4 text-[12.5px]" style={{ color: CL.muted }}>{r.desc}</div>
+                    <div className="px-3 pb-3 pt-2 space-y-1.5">
+                      {r.tasks.slice(0, 4).map(t => (
+                        <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px]"
+                          style={{ background: '#F5F4EE', color: CL.ink }}>
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: sev.dot }} />
+                          <span className="flex-1 truncate">{t.title}</span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${prioChip(t.priority)}`}>{t.priority}</span>
+                        </div>
+                      ))}
+                      {r.tasks.length > 4 && <p className="px-3 pt-1 text-[11px]" style={{ color: CL.faint }}>+{r.tasks.length - 4} more</p>}
+                      {r.tasks.length === 0 && <p className="px-3 py-1 text-[12.5px]" style={{ color: CL.faint }}>Nothing here — looking good.</p>}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
           );
         })}
-
-        {/* AI Recommendations */}
-        <div className="rounded-2xl overflow-hidden mt-1" style={{ background: '#1f1f22' }}>
-          {!aiRec ? (
-            <button onClick={getAiRecommendations} disabled={loadingRec}
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ color: ACCENT }}>
-              {loadingRec ? (
-                <>
-                  {[0, 1, 2].map(i => (
-                    <motion.div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }}
-                      animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-                  ))}
-                  <span>AI is analyzing risks...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} />
-                  Get AI Recommendations
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: ACCENT }}>AI Recommendations</p>
-              <p className="text-sm text-gray-200 leading-relaxed">{aiRec}</p>
-              <button onClick={() => setAiRec('')} className="mt-2 text-[10px] text-gray-600 hover:text-gray-400 transition-colors">Regenerate</button>
-            </div>
-          )}
-        </div>
       </div>
-    </motion.div>
+
+      {/* Claude's recommendations */}
+      {!aiRec && !loadingRec && (
+        <ClaudeButton onClick={getAiRecommendations}>
+          <ClaudeLogo size={14} className="text-white" /> Ask Claude for recommendations
+        </ClaudeButton>
+      )}
+      {loadingRec && <ClaudeThinking label="Analyzing your project…" />}
+      {aiRec && !loadingRec && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl overflow-hidden" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+          <div className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${CL.hairline}` }}>
+            <ClaudeLogo size={12} style={{ color: CL.terracotta }} />
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: CL.muted }}>Claude's recommendations</span>
+            <div className="ml-auto flex items-center gap-0.5">
+              <GhostIconBtn title="Copy" onClick={() => { navigator.clipboard?.writeText(aiRec).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+              </GhostIconBtn>
+              <GhostIconBtn title="Regenerate" onClick={getAiRecommendations}><RefreshCw size={13} /></GhostIconBtn>
+            </div>
+          </div>
+          <div className="px-4 py-3.5 text-[15px]" style={{ fontFamily: CL_SERIF, color: CL.ink, lineHeight: 1.65 }}>
+            <Markdown text={aiRec} />
+          </div>
+        </motion.div>
+      )}
+    </ClaudeShell>
   );
 };
 
 // ─── Daily Briefing View ──────────────────────────────────────────────────────
 
 const BriefingView: React.FC<{ tasks: Task[]; project: Project; user: User; onBack: () => void }> = ({ tasks, project, user, onBack }) => {
-  const ACCENT = '#9ef5a3';
   const data = useMemo(() => analyzeProject(tasks), [tasks]);
   const [standup, setStandup] = useState('');
   const [loading, setLoading] = useState(false);
@@ -985,237 +1136,215 @@ Blockers: ${data.stalledTasks.map(t => t.title).join(', ') || 'none'}.
 Format as: Yesterday: ... | Today: ... | Blockers: ...`;
       const action = await processUserMessage(msg, tasks);
       setStandup(action.summary || 'Standup generated.');
-    } catch { setStandup('Could not generate standup. Check AI connection.'); }
+    } catch { setStandup('Could not reach Claude — make sure the local AI server is running (npm run ai-server).'); }
     finally { setLoading(false); }
   };
 
   const copy = () => {
-    navigator.clipboard.writeText(standup);
+    navigator.clipboard?.writeText(standup).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const PRIO_COLOR: Record<string, string> = { High: '#ef4444', Medium: '#f59e0b', Low: '#10b981' };
-
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col h-full bg-[#e1e6de] rounded-3xl p-5 overflow-hidden">
-      <BackBtn onClick={onBack} accent={ACCENT} />
-
-      {/* Greeting */}
-      <div className="mb-5 pb-4 border-b border-[#1f1f22]/10">
-        <div className="flex items-center gap-2.5 mb-1">
-          <Sun size={18} style={{ color: '#f59e0b' }} />
-          <h2 className="text-xl font-bold text-[#1f1f22]">{greeting}, {user.name.split(' ')[0]}</h2>
-        </div>
-        <p className="text-sm text-[#5a6355]">{project.name} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+    <ClaudeShell title="Daily Briefing" onBack={onBack}>
+      {/* Serif greeting, like the Claude.ai home hero */}
+      <div className="mb-10">
+        <h1 style={serifH(30)} className="mb-2">
+          <ClaudeLogo size={26} className="inline-block mr-3 align-[-4px]" style={{ color: CL.terracotta }} />
+          {greeting}, {user.name.split(' ')[0]}.
+        </h1>
+        <p className="text-[14px]" style={{ color: CL.muted }}>
+          {project.name} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — here's where things stand.
+        </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 min-h-0" style={{ scrollbarWidth: 'none' }}>
-
-        {/* Today's Focus */}
-        <div>
-          <div className="flex items-center gap-2 mb-2.5">
-            <Zap size={13} className="text-[#f59e0b]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[#1f1f22]/50">Today's Focus</span>
-          </div>
-          <div className="space-y-2">
-            {data.todaysFocus.length === 0 ? (
-              <p className="text-sm text-[#5a6355] italic">No active tasks. You're all caught up!</p>
-            ) : data.todaysFocus.map((t, i) => (
-              <motion.div key={t.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                style={{ background: i === 0 ? '#1f1f22' : 'rgba(28,28,28,0.07)' }}>
-                <span className="text-xs font-black w-5 text-center" style={{ color: i === 0 ? ACCENT : '#5a6355' }}>#{i + 1}</span>
-                <span className={`flex-1 text-sm font-medium truncate ${i === 0 ? 'text-white' : 'text-[#1f1f22]'}`}>{t.title}</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ color: PRIO_COLOR[t.priority], background: PRIO_COLOR[t.priority] + '20' }}>{t.priority}</span>
-              </motion.div>
-            ))}
-          </div>
+      {/* Today's focus */}
+      <section className="mb-9">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: CL.faint }}>Today's focus</p>
+        <div className="space-y-2">
+          {data.todaysFocus.length === 0 ? (
+            <p className="text-[15px] italic" style={{ fontFamily: CL_SERIF, color: CL.muted }}>Nothing pressing — you're all caught up.</p>
+          ) : data.todaysFocus.map((t, i) => (
+            <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              style={i === 0
+                ? { background: '#FBF5F0', border: '1px solid #EBD5C8' }
+                : { background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+              <span className="text-[12px] font-semibold w-5 text-center tabular-nums" style={{ color: i === 0 ? CL.send : CL.faint }}>{i + 1}</span>
+              <span className="flex-1 text-[14px] truncate" style={{ color: CL.ink }}>{t.title}</span>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${prioChip(t.priority)}`}>{t.priority}</span>
+            </motion.div>
+          ))}
         </div>
+      </section>
 
-        {/* Sprint Health */}
-        <div>
-          <div className="flex items-center gap-2 mb-2.5">
-            <TrendingUp size={13} className="text-[#3b82f6]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[#1f1f22]/50">Sprint Health</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Done', val: data.doneCount, color: '#10b981' },
-              { label: 'Active', val: data.inProgressCount + data.testingCount, color: '#3b82f6' },
-              { label: 'Backlog', val: data.todoCount, color: '#6b7280' },
-            ].map(s => (
-              <div key={s.label} className="rounded-2xl p-3 text-center" style={{ background: 'rgba(28,28,28,0.07)' }}>
-                <p className="text-xl font-black" style={{ color: s.color }}>{s.val}</p>
-                <p className="text-[10px] text-[#5a6355]">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          {/* Progress bar */}
-          <div className="mt-2.5 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(28,28,28,0.1)' }}>
-            <motion.div className="h-full rounded-full" style={{ background: ACCENT }}
-              initial={{ width: 0 }} animate={{ width: `${data.completionRate}%` }}
-              transition={{ duration: 1, delay: 0.3, ease: [0.23, 1, 0.32, 1] }} />
-          </div>
-          <p className="text-[10px] text-[#5a6355] mt-1">{data.completionRate}% sprint completion</p>
-        </div>
-
-        {/* Standup Generator */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: '#1f1f22' }}>
-          {!standup ? (
-            <button onClick={generateStandup} disabled={loading}
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ color: ACCENT }}>
-              {loading ? (
-                <>
-                  {[0, 1, 2].map(i => (
-                    <motion.div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }}
-                      animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-                  ))}
-                  <span>Generating standup...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={14} />
-                  Generate Daily Standup
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: ACCENT }}>Daily Standup</p>
-                <button onClick={copy} className="flex items-center gap-1.5 text-[10px] text-gray-500 hover:text-gray-300 transition-colors">
-                  {copied ? <><Check size={10} className="text-green-400" /> Copied!</> : <><Copy size={10} /> Copy</>}
-                </button>
-              </div>
-              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-line">{standup}</p>
-              <button onClick={() => setStandup('')} className="mt-2 text-[10px] text-gray-600 hover:text-gray-400 transition-colors">Regenerate</button>
+      {/* Sprint health */}
+      <section className="mb-9">
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: CL.faint }}>Sprint health</p>
+        <div className="grid grid-cols-3 gap-2.5 mb-3">
+          {[
+            { label: 'Done', val: data.doneCount },
+            { label: 'Active', val: data.inProgressCount + data.testingCount },
+            { label: 'Backlog', val: data.todoCount },
+          ].map(s => (
+            <div key={s.label} className="rounded-xl px-4 py-3.5" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+              <p className="text-[20px] font-semibold leading-none tabular-nums" style={{ color: CL.ink }}>{s.val}</p>
+              <p className="text-[11px] mt-1.5" style={{ color: CL.faint }}>{s.label}</p>
             </div>
-          )}
+          ))}
         </div>
-      </div>
-    </motion.div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: '#EBE8DE' }}>
+          <motion.div className="h-full rounded-full" style={{ background: CL.terracotta }}
+            initial={{ width: 0 }} animate={{ width: `${data.completionRate}%` }}
+            transition={{ duration: 1, delay: 0.3, ease: [0.23, 1, 0.32, 1] }} />
+        </div>
+        <p className="text-[12px] mt-1.5" style={{ color: CL.muted }}>{data.completionRate}% of the sprint is complete</p>
+      </section>
+
+      {/* Standup */}
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: CL.faint }}>Standup</p>
+        {!standup && !loading && (
+          <ClaudeButton onClick={generateStandup}>
+            <ClaudeLogo size={14} className="text-white" /> Have Claude write your standup
+          </ClaudeButton>
+        )}
+        {loading && <ClaudeThinking label="Writing your standup…" />}
+        {standup && !loading && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl overflow-hidden" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+            <div className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${CL.hairline}` }}>
+              <ClaudeLogo size={12} style={{ color: CL.terracotta }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: CL.muted }}>Daily standup</span>
+              <div className="ml-auto flex items-center gap-0.5">
+                <GhostIconBtn title="Copy" onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}</GhostIconBtn>
+                <GhostIconBtn title="Regenerate" onClick={generateStandup}><RefreshCw size={13} /></GhostIconBtn>
+              </div>
+            </div>
+            <div className="px-4 py-3.5 text-[15px] whitespace-pre-line" style={{ fontFamily: CL_SERIF, color: CL.ink, lineHeight: 1.65 }}>
+              {standup}
+            </div>
+          </motion.div>
+        )}
+      </section>
+    </ClaudeShell>
   );
 };
 
 // ─── Planning View ────────────────────────────────────────────────────────────
 
 const PlanningView: React.FC<{ tasks: Task[]; project: Project; onAction: (a: AIAction) => void; onBack: () => void }> = ({ tasks, project, onAction, onBack }) => {
-  const ACCENT = '#b59df4';
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<AIAction | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [focus, setFocus] = useState('');
+  const [error, setError] = useState('');
   const data = useMemo(() => analyzeProject(tasks), [tasks]);
 
   const generate = async () => {
-    setLoading(true); setPlan(null); setConfirmed(false);
+    if (loading) return;
+    setLoading(true); setPlan(null); setConfirmed(false); setError('');
     try {
-      const msg = `Create a sprint plan for ${project.name}. We have ${data.todoCount} To Do tasks, ${data.inProgressCount} in progress, ${data.highPriorityTodo.length} high priority not started. Generate 3-5 focused tasks for this sprint.`;
+      const msg = `Create a sprint plan for ${project.name}. Backlog: ${data.todoCount} To Do, ${data.inProgressCount} in progress, ${data.highPriorityTodo.length} high-priority not started.${focus.trim() ? ` The team wants this sprint to focus on: ${focus.trim()}.` : ''} Generate 3-5 focused tasks for this sprint.`;
       const action = await processUserMessage(msg, tasks);
-      if (action.intent === 'CREATE_TASKS') setPlan(action);
-    } catch { }
+      if (action.intent === 'CREATE_TASKS' && action.payload?.tasks?.length) setPlan(action);
+      else setError('Claude did not propose any tasks — try describing the focus differently.');
+    } catch { setError('Could not reach Claude — make sure the local AI server is running (npm run ai-server).'); }
     finally { setLoading(false); }
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col h-full bg-[#e1e6de] rounded-3xl p-5 overflow-hidden">
-      <BackBtn onClick={onBack} accent={ACCENT} />
-      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#1f1f22]/10">
-        <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: '#1f1f22' }}>
-          <ClipboardList size={16} style={{ color: ACCENT }} />
-        </div>
-        <div>
-          <p className="font-bold text-[#1f1f22] text-sm">Sprint Planning</p>
-          <p className="text-[11px] text-[#5a6355]">AI-driven sprint setup for {project.name}</p>
-        </div>
+    <ClaudeShell title="Sprint Planning" onBack={onBack}>
+      {/* Serif greeting */}
+      <div className="mb-8">
+        <h1 style={serifH(28)} className="mb-2">
+          <ClaudeLogo size={24} className="inline-block mr-3 align-[-3px]" style={{ color: CL.terracotta }} />
+          Let's plan your sprint.
+        </h1>
+        <p className="text-[14px]" style={{ color: CL.muted }}>
+          Claude reads the {project.name} backlog and drafts the highest-impact sprint for you to review.
+        </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      {/* Backlog snapshot */}
+      <div className="grid grid-cols-4 gap-2.5 mb-7">
         {[
-          { label: 'Backlog', val: data.todoCount, color: '#6b7280' },
-          { label: 'Active', val: data.inProgressCount, color: '#3b82f6' },
-          { label: 'High Pri', val: data.highPriorityTodo.length, color: '#ef4444' },
-          { label: 'Done', val: data.doneCount, color: '#10b981' },
+          { label: 'Backlog', val: data.todoCount },
+          { label: 'Active', val: data.inProgressCount },
+          { label: 'High priority', val: data.highPriorityTodo.length },
+          { label: 'Done', val: data.doneCount },
         ].map(s => (
-          <div key={s.label} className="rounded-2xl p-3 text-center" style={{ background: 'rgba(28,28,28,0.07)' }}>
-            <p className="text-xl font-black" style={{ color: s.color }}>{s.val}</p>
-            <p className="text-[10px] text-[#5a6355] mt-0.5">{s.label}</p>
+          <div key={s.label} className="rounded-xl px-4 py-3.5" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+            <p className="text-[20px] font-semibold leading-none tabular-nums" style={{ color: CL.ink }}>{s.val}</p>
+            <p className="text-[11px] mt-1.5" style={{ color: CL.faint }}>{s.label}</p>
           </div>
         ))}
       </div>
 
-      {!plan && !loading && (
-        <motion.button onClick={generate} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-          className="flex items-center justify-center gap-2.5 py-4 rounded-2xl font-bold transition-all mb-4"
-          style={{ background: '#1f1f22', color: ACCENT }}>
-          <Sparkles size={15} />
-          Generate Sprint Plan with AI
-        </motion.button>
-      )}
+      {/* Focus composer — steer Claude's draft */}
+      <div className="flex items-center gap-2 rounded-2xl pl-4 pr-2 py-2 mb-3"
+        style={{ background: CL.surface, border: `1px solid ${CL.hairlineStrong}`, boxShadow: '0 4px 24px -12px rgba(41,38,27,0.18)' }}>
+        <input
+          value={focus}
+          onChange={e => setFocus(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') generate(); }}
+          disabled={loading}
+          placeholder="Anything this sprint should focus on? (optional)"
+          className="flex-1 bg-transparent text-[14px] outline-none placeholder:text-[#A6A39A]"
+          style={{ color: CL.ink }}
+        />
+        <ClaudeButton onClick={generate} disabled={loading}>
+          <ClaudeLogo size={14} className="text-white" /> Draft sprint
+        </ClaudeButton>
+      </div>
 
-      {loading && (
-        <div className="flex items-center justify-center gap-3 py-4 rounded-2xl mb-4" style={{ background: 'rgba(28,28,28,0.07)' }}>
-          {[0, 1, 2].map(i => (
-            <motion.div key={i} className="w-2 h-2 rounded-full" style={{ background: ACCENT }}
-              animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-          ))}
-          <span className="text-sm text-[#1f1f22]/60">AI is planning your sprint...</span>
-        </div>
-      )}
+      {loading && <div className="mt-5"><ClaudeThinking label="Drafting your sprint…" /></div>}
+      {error && !loading && <p className="mt-3 text-[13px]" style={{ color: '#C2410C' }}>{error}</p>}
 
-      {plan && (
+      {plan && !loading && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex-1 rounded-2xl overflow-hidden" style={{ background: '#1f1f22' }}>
-          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${ACCENT}20` }}>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: ACCENT + '80' }}>Proposed Sprint Plan</p>
-            <p className="text-sm text-gray-200">{plan.summary}</p>
+          className="mt-5 rounded-xl overflow-hidden" style={{ background: CL.surface, border: `1px solid ${CL.hairline}` }}>
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${CL.hairline}` }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <ClaudeLogo size={12} style={{ color: CL.terracotta }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: CL.muted }}>Proposed sprint</span>
+            </div>
+            <p className="text-[15px]" style={{ fontFamily: CL_SERIF, color: CL.ink, lineHeight: 1.55 }}>{plan.summary}</p>
           </div>
-          <div className="p-3 space-y-2 overflow-y-auto max-h-48" style={{ scrollbarWidth: 'none' }}>
+          <div className="p-2 space-y-1">
             {plan.payload?.tasks?.map((t: any, i: number) => (
               <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                style={{ background: `${ACCENT}08`, border: `1px solid ${ACCENT}18` }}>
-                <span className="text-[10px] font-bold w-4 text-center" style={{ color: ACCENT + '60' }}>{i + 1}</span>
-                <p className="text-xs text-gray-200 flex-1">{t.title}</p>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${t.priority === 'High' ? 'text-red-400 bg-red-500/10' : t.priority === 'Medium' ? 'text-amber-400 bg-amber-500/10' : 'text-gray-400 bg-gray-500/10'}`}>
-                  {t.priority}
-                </span>
+                className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-[#F5F4EE]">
+                <span className="text-[11px] font-semibold w-4 text-center tabular-nums" style={{ color: CL.faint }}>{i + 1}</span>
+                <p className="text-sm flex-1 truncate" style={{ color: CL.ink }}>{t.title}</p>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${prioChip(t.priority)}`}>{t.priority}</span>
               </motion.div>
             ))}
           </div>
           {!confirmed ? (
-            <div className="flex gap-2 px-4 py-3" style={{ borderTop: `1px solid ${ACCENT}15` }}>
+            <div className="flex gap-2 px-3 py-3" style={{ borderTop: `1px solid ${CL.hairline}` }}>
               <button onClick={() => { onAction(plan); setConfirmed(true); }}
-                className="flex-1 py-2 rounded-xl text-sm font-bold text-[#1f1f22] transition-all hover:opacity-90"
-                style={{ background: ACCENT }}>
-                Commit Sprint
+                className="flex-1 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                style={{ background: CL.send }}
+                onMouseEnter={e => { e.currentTarget.style.background = CL.sendHover; }}
+                onMouseLeave={e => { e.currentTarget.style.background = CL.send; }}>
+                Commit sprint
               </button>
-              <button onClick={() => setPlan(null)}
-                className="flex-1 py-2 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/10 transition-all"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={generate}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-[#F0EEE5]"
+                style={{ color: CL.body, border: `1px solid ${CL.hairlineStrong}` }}>
                 Regenerate
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm" style={{ color: ACCENT, borderTop: `1px solid ${ACCENT}15` }}>
-              <CheckCircle2 size={13} /> Sprint committed! Tasks added to your board.
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#618A5C]" style={{ borderTop: `1px solid ${CL.hairline}` }}>
+              <CheckCircle2 size={15} /> Sprint committed — tasks added to your board.
             </div>
           )}
         </motion.div>
       )}
-
-      {!plan && !loading && (
-        <div className="flex-1 flex flex-col justify-center items-center text-center">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(28,28,28,0.07)' }}>
-            <ClipboardList size={22} style={{ color: ACCENT }} />
-          </div>
-          <p className="text-sm font-medium text-[#1f1f22]">Ready to plan</p>
-          <p className="text-xs text-[#5a6355] mt-1 max-w-xs">AI analyzes your backlog and proposes the highest-impact tasks for this sprint.</p>
-        </div>
-      )}
-    </motion.div>
+    </ClaudeShell>
   );
 };
 
@@ -1233,7 +1362,7 @@ const AICommandCenter: React.FC<Props> = ({ tasks, project, user, onAIAction }) 
       <div className="h-full min-h-0 overflow-hidden">
         <AnimatePresence mode="wait">
           {view === 'launcher' && (
-            <motion.div key="launcher" className="h-full"
+            <motion.div key="launcher" className="h-full overflow-y-auto p-8"
               initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
               transition={{ duration: 0.25 }}>
               <Launcher onSelect={setView} />
@@ -1241,21 +1370,21 @@ const AICommandCenter: React.FC<Props> = ({ tasks, project, user, onAIAction }) 
           )}
           {view === 'chat' && (
             <motion.div key="chat" className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
-              <AIChatView tasks={tasks} onAction={onAIAction} onBack={() => setView('launcher')} />
+              <AIChatView tasks={tasks} onAction={onAIAction} onBack={() => setView('launcher')} storageKey={`devtrack-ai-chats-${project.id}`} />
             </motion.div>
           )}
           {view === 'risk' && (
-            <motion.div key="risk" className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+            <motion.div key="risk" className="h-full overflow-y-auto" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
               <RiskRadarView tasks={tasks} project={project} onBack={() => setView('launcher')} />
             </motion.div>
           )}
           {view === 'planning' && (
-            <motion.div key="planning" className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+            <motion.div key="planning" className="h-full overflow-y-auto" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
               <PlanningView tasks={tasks} project={project} onAction={onAIAction} onBack={() => setView('launcher')} />
             </motion.div>
           )}
           {view === 'briefing' && (
-            <motion.div key="briefing" className="h-full" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+            <motion.div key="briefing" className="h-full overflow-y-auto" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
               <BriefingView tasks={tasks} project={project} user={user} onBack={() => setView('launcher')} />
             </motion.div>
           )}

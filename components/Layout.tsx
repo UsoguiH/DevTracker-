@@ -275,7 +275,7 @@ const Layout: React.FC<LayoutProps> = ({
         />
 
         {/* Page Content Scrollable Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 scroll-smooth relative">
+        <div className={`flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative ${activeTab === 'ai' ? '' : 'p-8'}`}>
           {/* Background dot grid — warm ink, very subtle */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]"
             style={{ backgroundImage: 'radial-gradient(#26251e 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
