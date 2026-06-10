@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Task, User, Project, AIAction } from '../types';
 import { processUserMessage } from '../lib/aiService';
+import ClaudeLogo from '../components/ClaudeLogo';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -292,21 +293,9 @@ export interface ChatMsg { id: string; role: 'user' | 'ai' | 'thinking' | 'actio
 // up-arrow send button. Empty state is the ChatGPT "hero": a centered heading
 // with the composer and suggestion chips beneath it.
 
-// An original AI mark for DevTracker PM — a clean-room geometric "spark",
-// not any third-party brand logo.
+// Claude starburst mark, rendered in Claude's terracotta.
 const PmLogo: React.FC<{ size?: number }> = ({ size = 28 }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-label="DevTracker PM">
-    <defs>
-      <linearGradient id="pmGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#6ee7b7" />
-        <stop offset="1" stopColor="#14b8a6" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M16 2c1.85 5.1 4.9 8.15 10 10-5.1 1.85-8.15 4.9-10 10-1.85-5.1-4.9-8.15-10-10 5.1-1.85 8.15-4.9 10-10Z"
-      fill="url(#pmGrad)"
-    />
-  </svg>
+  <ClaudeLogo size={size} className="text-[#D97757]" />
 );
 
 // ── Tiny Markdown renderer (bold, italic, inline code, bullet/numbered lists,

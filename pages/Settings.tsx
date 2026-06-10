@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Bell, Shield, Smartphone, Mail, User as UserIcon, LogOut, Workflow } from 'lucide-react';
+import { Save, Bell, Shield, Smartphone, Mail, User as UserIcon, LogOut, Workflow, DatabaseBackup, FileJson, FileSpreadsheet } from 'lucide-react';
 import { User, Project, WorkflowStatus, DEFAULT_WORKFLOW } from '../types';
 import WorkflowEditor from '../components/WorkflowEditor';
 
@@ -9,9 +9,12 @@ interface SettingsProps {
     onClearData: () => void;
     activeProject?: Project | null;
     onUpdateProject?: (projectId: string, updates: Partial<Project>) => Promise<void>;
+    taskCount?: number;
+    onExportJSON?: () => void;
+    onExportCSV?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, activeProject, onUpdateProject }) => {
+const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, activeProject, onUpdateProject, taskCount = 0, onExportJSON, onExportCSV }) => {
     const [formData, setFormData] = useState<User>(user);
     const [isDirty, setIsDirty] = useState(false);
     const [showSaved, setShowSaved] = useState(false);
@@ -140,6 +143,37 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onClearData, ac
                             workflow={activeProject.workflow ?? DEFAULT_WORKFLOW}
                             onSave={async (newWorkflow: WorkflowStatus[]) => { await onUpdateProject(activeProject.id, { workflow: newWorkflow }); }}
                         />
+                    </div>
+                )}
+
+                {/* Data Export */}
+                {activeProject && onExportJSON && onExportCSV && (
+                    <div className={`${card} animate-slide-up delay-300`}>
+                        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-hairline">
+                            <div className="p-3 bg-canvas-soft rounded-lg text-primary"><DatabaseBackup size={24} /></div>
+                            <div>
+                                <h2 className="text-xl font-semibold text-ink">Data Export</h2>
+                                <p className="text-sm text-muted">Download a local copy of <span className="text-ink font-semibold">{activeProject.name}</span> — {taskCount} task{taskCount === 1 ? '' : 's'}, archived sprints included.</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button onClick={onExportJSON}
+                                className="flex items-start gap-4 p-5 bg-canvas-soft border border-hairline rounded-lg text-left hover:border-primary/50 hover:-translate-y-0.5 transition-all group">
+                                <FileJson size={22} className="text-muted group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                                <div>
+                                    <h3 className="font-semibold text-ink text-sm mb-1">JSON Backup</h3>
+                                    <p className="text-xs text-muted leading-relaxed">Full-fidelity backup of the project and every task — tags, assignees, subtasks and all.</p>
+                                </div>
+                            </button>
+                            <button onClick={onExportCSV}
+                                className="flex items-start gap-4 p-5 bg-canvas-soft border border-hairline rounded-lg text-left hover:border-primary/50 hover:-translate-y-0.5 transition-all group">
+                                <FileSpreadsheet size={22} className="text-muted group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                                <div>
+                                    <h3 className="font-semibold text-ink text-sm mb-1">CSV Spreadsheet</h3>
+                                    <p className="text-xs text-muted leading-relaxed">Task list in spreadsheet format — opens straight in Excel, Numbers or Google Sheets.</p>
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 )}
 

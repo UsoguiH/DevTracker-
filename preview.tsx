@@ -8,6 +8,8 @@ import Timeline from './pages/Timeline';
 import TaskDetailDrawer from './components/TaskDetailDrawer';
 import Layout from './components/Layout';
 import { MorphPanel } from './components/ui/ai-input';
+import BoardAIPanel, { BoardMsg } from './components/BoardAIPanel';
+import Whiteboard from './pages/Whiteboard';
 
 /**
  * Dev-only preview harness (no Supabase login needed) so reskinned screens can
@@ -94,6 +96,29 @@ if (view === 'projects') {
     );
   };
   content = <LayoutPreview />;
+} else if (view === 'space') {
+  const boardSeed: BoardMsg[] = [
+    { role: 'user', text: 'Turn my project tasks into a planning board' },
+    { role: 'assistant', text: 'I laid out your five tasks as a kanban-style planning board — three columns for To Do, In Progress, and Done, with each task as a sticky note under its column. The two high-priority ones are at the top of their columns.', meta: '+8 elements · 2 updated' },
+    { role: 'user', text: 'nice, can you add a section for blocked work too?' },
+  ];
+  const emptyBoard: any = { elements: [], connectors: [] };
+  content = (
+    <div className="h-screen relative" style={{ background: '#f7f7f4' }}>
+      <BoardAIPanel
+        isOpen onClose={() => {}} board={emptyBoard} taskTitles={[]} projectName="Cafe App"
+        onApply={() => ({ added: 0, updated: 0, removed: 0 })}
+        previewSeed={params.get('state') === 'empty' ? [] : boardSeed}
+        previewBusy={params.get('state') === 'busy'}
+      />
+    </div>
+  );
+} else if (view === 'whiteboard') {
+  content = (
+    <div className="h-screen bg-canvas">
+      <Whiteboard projectId="p1" projectName="Cafe App" tasks={mockTasks.filter(t => t.projectId === 'p1')} />
+    </div>
+  );
 } else if (view === 'task-drawer') {
   const drawerTask: any = {
     id: 't2', projectId: 'p1',

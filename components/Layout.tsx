@@ -13,6 +13,7 @@ import {
   Zap,
   PanelRight,
   BrainCircuit,
+  Presentation,
   ChevronsLeft,
   ChevronsRight
 } from 'lucide-react';
@@ -28,6 +29,7 @@ interface LayoutProps {
   setSearchQuery: (query: string) => void;
   onAddTask: () => void;
   onOpenFocusMode: () => void;
+  onOpenCommandPalette: () => void;
   activeProject: Project | null;
   onUpdateProject?: (projectId: string, updates: Partial<Project>) => void;
   user: User;
@@ -43,6 +45,7 @@ const Layout: React.FC<LayoutProps> = ({
   setSearchQuery,
   onAddTask,
   onOpenFocusMode,
+  onOpenCommandPalette,
   activeProject,
   onUpdateProject,
   user,
@@ -155,10 +158,11 @@ const Layout: React.FC<LayoutProps> = ({
           <NavRow id="dashboard" icon={LayoutDashboard} label="Dashboard" disabled={!activeProject} index={1} />
           <NavRow id="kanban" icon={KanbanSquare} label="Kanban" disabled={!activeProject} index={2} />
           <NavRow id="timeline" icon={CalendarDays} label="Timeline" disabled={!activeProject} index={3} />
-          <NavRow id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} index={4} />
+          <NavRow id="canvas" icon={Presentation} label="Space" disabled={!activeProject} index={4} />
+          <NavRow id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} index={5} />
 
           <Caption>Focus</Caption>
-          <NavRow icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} index={5} />
+          <NavRow icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} index={6} />
         </div>
 
         {/* Bottom: settings + user */}
@@ -197,6 +201,17 @@ const Layout: React.FC<LayoutProps> = ({
 
           {/* Right Actions */}
           <div className="flex items-center gap-5">
+            {/* Command Palette trigger */}
+            <button
+              onClick={onOpenCommandPalette}
+              className="hidden md:flex items-center gap-2.5 pl-3 pr-2 py-2 rounded-md border border-hairline-strong bg-surface-card text-muted hover:text-ink hover:border-primary/50 transition-all duration-300 group"
+              title="Command Palette (Ctrl+K)"
+            >
+              <Search size={15} className="group-hover:text-primary transition-colors" />
+              <span className="text-[13px]">Jump to…</span>
+              <kbd className="text-[10px] font-mono bg-surface-strong border border-hairline rounded px-1.5 py-0.5 text-muted-soft">Ctrl K</kbd>
+            </button>
+
             {activeTab === 'kanban' && (
               <div className="relative w-full max-w-xs group animate-fade-in">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-300" size={18} />

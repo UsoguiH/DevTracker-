@@ -100,6 +100,66 @@ ${transcript ? `CONVERSATION SO FAR:\n${transcript}\n` : ''}DEVELOPER'S LATEST M
 ${message}`;
 }
 
+// ── Canvas copilot persona — Claude has full access to the Space canvas ─────
+// The board is sent as compact JSON; Claude replies with chat text + mutations
+// (add / update / remove elements & connectors) that the canvas applies live.
+function buildBoardPrompt({ message, board, tasks, history }) {
+  const today = new Date().toISOString().split('T')[0];
+  const boardJson = JSON.stringify(board || { elements: [], connectors: [] });
+  const taskList = (tasks || []).map(t => `- ${t}`).join('\n');
+
+  const transcript = (history || [])
+    .slice(-10)
+    .map(h => `${h.role === 'user' ? 'Developer' : 'Claude'}: ${h.text}`)
+    .join('\n');
+
+  return `You are Claude, the AI design partner living inside DevTracker's infinite whiteboard canvas ("Space").
+You have FULL access to the canvas: you can see every element and you can add, update and remove elements
+and connectors. You help the developer think visually — planning, diagramming, flowcharts, brainstorming,
+wireframe-style prototyping, retrospectives, mind maps. The current date is: ${today}.
+
+CANVAS MODEL:
+- Coordinate system: infinite 2D plane, x/y is an element's TOP-LEFT corner in pixels. y grows downward.
+- Element types and sensible default sizes:
+  - "sticky"  : square sticky note, ~170x170. Short punchy text. Has a pastel "color".
+  - "rect"    : rectangle node, ~200x110. Good for flowchart steps, wireframe blocks.
+  - "ellipse" : ellipse node, ~200x110. Good for start/end nodes.
+  - "diamond" : diamond node, ~180x140. Good for decisions ("Yes/No" branches).
+  - "text"    : free-floating label, ~260x44, transparent. Good for titles/section headers.
+- Connectors are arrows between two elements (by id or ref): { "from", "to", "label"? }.
+- Sticky colors (pick varied ones): "#FFF6A5" yellow, "#FFD6A5" orange, "#FFB3BA" pink, "#D7BDE2" purple,
+  "#AED6F1" blue, "#A9DFBF" green. Shapes default to "#ffffff".
+
+LAYOUT RULES — make boards that look hand-arranged and readable:
+- Leave 60-100px gaps between elements. NEVER overlap elements.
+- Flowcharts: top-to-bottom, x aligned, ~180-220px vertical spacing; branches fan out horizontally.
+- Brainstorms: sticky grid or clusters, ~200px pitch, group by theme with a "text" title above each cluster.
+- Mind maps: central node, branches radiating outward.
+- If the board already has elements, place new work in EMPTY space near related content (check existing x/y!).
+
+WHAT YOU CAN DO:
+1. ADD elements/connectors — give each new element a unique "ref" (e.g. "n1") so connectors can reference it.
+2. UPDATE existing elements by their "id" — move (x/y), resize, retext, recolor. Great for tidying/organizing.
+3. REMOVE elements by id (their connectors die with them).
+4. Or just TALK — answer questions about the board, critique a flow, suggest next steps (omit mutations).
+
+OUTPUT CONTRACT — respond with ONLY one raw JSON object, no code fences, no prose around it:
+{
+  "reply": string,            // your conversational answer — always present, friendly, concise
+  "add": {                    // optional
+    "elements": [ { "ref": "n1", "type": "sticky"|"rect"|"ellipse"|"diamond"|"text", "x": number, "y": number, "w": number, "h": number, "text": string, "color": string } ],
+    "connectors": [ { "from": "n1"|"<existing id>", "to": "n2"|"<existing id>", "label": string? } ]
+  },
+  "update": [ { "id": "<existing id>", ...changed fields only } ],   // optional
+  "remove": [ "<existing id>" ]                                      // optional
+}
+
+CURRENT BOARD: ${boardJson}
+
+${taskList ? `PROJECT TASKS (context for planning):\n${taskList}\n` : ''}${transcript ? `CONVERSATION SO FAR:\n${transcript}\n` : ''}DEVELOPER'S LATEST MESSAGE:
+${message}`;
+}
+
 // Pull the AIAction object out of whatever Claude printed. Claude was told to
 // emit raw JSON, but we defend against stray prose / code fences just in case.
 function extractAction(text) {
@@ -122,12 +182,47 @@ function extractAction(text) {
   }
 }
 
+// Normalize whatever board JSON the model produced into the strict contract
+// the canvas expects: { reply, add?: {elements, connectors}, update?, remove? }.
+// Models sometimes drift (root-level "elements", "summary" instead of "reply",
+// "updates"/"delete" aliases) — accept all of it rather than failing the turn.
+function normalizeBoardResult(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const out = {};
+
+  out.reply =
+    typeof obj.reply === 'string' ? obj.reply :
+    typeof obj.summary === 'string' ? obj.summary :
+    typeof obj.message === 'string' ? obj.message : null;
+
+  let add = obj.add;
+  if (Array.isArray(add)) add = { elements: add };
+  if (!add && (Array.isArray(obj.elements) || Array.isArray(obj.connectors))) {
+    add = { elements: obj.elements || [], connectors: obj.connectors || [] };
+  }
+  if (add && (Array.isArray(add.elements) || Array.isArray(add.connectors))) {
+    out.add = { elements: add.elements || [], connectors: add.connectors || [] };
+  }
+
+  const update = Array.isArray(obj.update) ? obj.update : Array.isArray(obj.updates) ? obj.updates : null;
+  if (update) out.update = update;
+
+  const remove = Array.isArray(obj.remove) ? obj.remove : Array.isArray(obj.delete) ? obj.delete : null;
+  if (remove) out.remove = remove;
+
+  if (out.reply === null && !out.add && !out.update && !out.remove) return null;
+  if (out.reply === null) out.reply = 'Done — board updated.';
+  return out;
+}
+
 // Models the UI is allowed to request (prevents arbitrary --model injection).
 const ALLOWED_MODELS = new Set(['haiku', 'sonnet']);
 
 // Spawn `claude -p`, feed the prompt via stdin (avoids all shell-escaping pain
-// with a large multi-line prompt), and resolve with the parsed AIAction.
-function askClaude(prompt, model) {
+// with a large multi-line prompt), and resolve with the parsed response.
+// mode 'tasks' → AIAction { intent, ... } | mode 'board' → { reply, add?, update?, remove? }
+function askClaude(prompt, model, mode = 'tasks') {
+  const fail = (msg) => mode === 'board' ? { reply: msg } : { intent: 'NONE', summary: msg };
   return new Promise((resolve) => {
     const useModel = ALLOWED_MODELS.has(model) ? model : MODEL;
     // `--output-format json` makes stdout exactly one JSON envelope:
@@ -156,7 +251,7 @@ function askClaude(prompt, model) {
       if (done) return;
       done = true;
       try { child.kill(); } catch {}
-      resolve({ intent: 'NONE', summary: 'Claude took too long to respond. Try again.' });
+      resolve(fail('Claude took too long to respond. Try again.'));
     }, TIMEOUT_MS);
 
     child.stdout.on('data', (d) => { stdout += d.toString(); });
@@ -167,10 +262,7 @@ function askClaude(prompt, model) {
       done = true;
       clearTimeout(timer);
       console.error('[ai-server] failed to spawn claude:', err.message);
-      resolve({
-        intent: 'NONE',
-        summary: "I couldn't start Claude Code. Is the `claude` CLI installed and logged in?",
-      });
+      resolve(fail("I couldn't start Claude Code. Is the `claude` CLI installed and logged in?"));
     });
 
     child.on('close', (code) => {
@@ -187,17 +279,18 @@ function askClaude(prompt, model) {
         // stdout wasn't the envelope (older CLI / extra logging) — use it raw.
       }
 
-      const action = extractAction(modelText);
-      if (action && action.intent) {
+      const action = mode === 'board'
+        ? normalizeBoardResult(extractAction(modelText))
+        : extractAction(modelText);
+      const isValid = mode === 'board' ? !!action : !!(action && action.intent);
+
+      if (isValid) {
         resolve(action);
       } else {
-        console.error(`[ai-server] no valid AIAction (exit ${code}). stderr:`, stderr.slice(-500));
-        resolve({
-          intent: 'NONE',
-          summary: modelText && modelText.trim()
-            ? modelText.trim().slice(0, 600)
-            : 'Claude replied, but I could not parse a task command from it.',
-        });
+        console.error(`[ai-server] no valid ${mode} response (exit ${code}). stderr:`, stderr.slice(-500));
+        resolve(fail(modelText && modelText.trim()
+          ? modelText.trim().slice(0, 600)
+          : 'Claude replied, but I could not parse a command from it.'));
       }
     });
 
@@ -212,8 +305,11 @@ function readBody(req) {
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); }
-      catch (e) { reject(e); }
+      try {
+        let raw = Buffer.concat(chunks).toString('utf8');
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1); // strip UTF-8 BOM
+        resolve(JSON.parse(raw || '{}'));
+      } catch (e) { reject(e); }
     });
     req.on('error', reject);
   });
@@ -244,13 +340,26 @@ http
       const message = (body.message || '').toString().trim();
       if (!message) return sendJson(res, 400, { intent: 'NONE', summary: 'Empty message.' });
 
+      // Canvas copilot mode — Claude sees and edits the Space whiteboard.
+      if (body.mode === 'board') {
+        console.log(`[ai-server] →(board) ${message.slice(0, 80)}`);
+        const result = await askClaude(
+          buildBoardPrompt({ message, board: body.board, tasks: body.tasks, history: body.history }),
+          body.model,
+          'board'
+        );
+        const added = result.add?.elements?.length || 0;
+        console.log(`[ai-server] ←(board) reply${added ? ` +${added} elements` : ''}`);
+        return sendJson(res, 200, result);
+      }
+
       console.log(`[ai-server] → ${message.slice(0, 80)}`);
       const action = await askClaude(buildPrompt({ message, currentContext: body.currentContext, history: body.history }), body.model);
       console.log(`[ai-server] ← ${action.intent}`);
       return sendJson(res, 200, action);
     }
 
-    if (url === '/api/health') return sendJson(res, 200, { ok: true, model: MODEL });
+    if (url === '/api/health') return sendJson(res, 200, { ok: true, model: MODEL, board: true });
 
     sendJson(res, 404, { intent: 'NONE', summary: 'Not found.' });
   })

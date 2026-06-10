@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { supabase } from './src/supabaseClient';
 import Login from './src/pages/Login';
 import Layout from './components/Layout';
@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import AICommandCenter from './pages/AICommandCenter';
 import KanbanBoard from './pages/KanbanBoard';
 import Timeline from './pages/Timeline';
+import Whiteboard from './pages/Whiteboard';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
 import TaskModal from './components/TaskModal';
@@ -15,6 +16,9 @@ import TaskDetailDrawer from './components/TaskDetailDrawer';
 import SprintHistoryModal from './components/SprintHistoryModal';
 import FocusMode from './components/FocusMode';
 import InviteMemberModal from './components/InviteMemberModal';
+import CommandPalette from './components/CommandPalette';
+import { ToastHost, toast } from './components/Toast';
+import { exportProjectJSON, exportTasksCSV } from './lib/exportData';
 import { Task, Status, Project, User, Activity, AIAction, WorkflowStatus } from './types';
 import { MorphPanel } from './components/ui/ai-input';
 import { processUserMessage as processUserMessageReal } from './lib/aiService';
@@ -131,6 +135,13 @@ const App: React.FC = () => {
   // Focus Mode State
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
 
+  // Command Palette State (Ctrl/Cmd+K)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Pending deferred deletes (task/project id -> timeout), so "Undo" can cancel
+  // the DB delete before it actually fires.
+  const pendingDeletes = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
   // AI Assistant State
 
   const [aiFilter, setAiFilter] = useState<{ priority?: string } | null>(null);
@@ -148,6 +159,11 @@ const App: React.FC = () => {
 
   const archivedTasks = useMemo(() =>
     activeProjectId ? tasks.filter(t => t.projectId === activeProjectId && t.sprintId) : [],
+    [tasks, activeProjectId]);
+
+  // Everything in the project, archived sprints included — used for exports.
+  const allProjectTasks = useMemo(() =>
+    activeProjectId ? tasks.filter(t => t.projectId === activeProjectId) : [],
     [tasks, activeProjectId]);
 
   const filteredTasks = useMemo(() => {
@@ -293,6 +309,18 @@ const App: React.FC = () => {
     }
   }, [projects, activeTab, isLoading]);
 
+  // Global Ctrl/Cmd+K -> command palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
 
   // --- Handlers (Supabase Integrated) ---
 
@@ -371,7 +399,11 @@ const App: React.FC = () => {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    // Optimistic
+    const projectToDelete = projects.find(p => p.id === projectId);
+    if (!projectToDelete) return;
+    const tasksSnapshot = tasks.filter(t => t.projectId === projectId);
+
+    // Optimistic — DB delete is deferred so "Undo" can cancel it
     setProjects(prev => prev.filter(p => p.id !== projectId));
     setTasks(prev => prev.filter(t => t.projectId !== projectId));
     if (activeProjectId === projectId) {
@@ -379,7 +411,26 @@ const App: React.FC = () => {
       setActiveTab('projects');
     }
 
-    await supabase.from('projects').delete().eq('id', projectId);
+    const key = `project-${projectId}`;
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(key);
+      await supabase.from('projects').delete().eq('id', projectId);
+    }, 6500);
+    pendingDeletes.current.set(key, timer);
+
+    toast(`Project "${projectToDelete.name}" deleted`, {
+      duration: 6000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const pending = pendingDeletes.current.get(key);
+          if (pending) { clearTimeout(pending); pendingDeletes.current.delete(key); }
+          setProjects(prev => prev.some(p => p.id === projectId) ? prev : [...prev, projectToDelete]);
+          setTasks(prev => [...prev, ...tasksSnapshot.filter(s => !prev.some(t => t.id === s.id))]);
+          toast('Project restored');
+        }
+      }
+    });
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -596,14 +647,32 @@ const App: React.FC = () => {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
+    const taskToDelete = tasks.find(t => t.id === taskId);
+    if (!taskToDelete) return;
 
-    // Optimistic Update
+    // Optimistic Update — DB delete is deferred so "Undo" can cancel it
     setTasks(prev => prev.filter(t => t.id !== taskId));
     setSelectedTask(null); // Close drawer if open
 
-    // DB Delete
-    await supabase.from('tasks').delete().eq('id', taskId);
+    const key = `task-${taskId}`;
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(key);
+      await supabase.from('tasks').delete().eq('id', taskId);
+    }, 6500);
+    pendingDeletes.current.set(key, timer);
+
+    toast(`Deleted "${taskToDelete.title}"`, {
+      duration: 6000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const pending = pendingDeletes.current.get(key);
+          if (pending) { clearTimeout(pending); pendingDeletes.current.delete(key); }
+          setTasks(prev => prev.some(t => t.id === taskId) ? prev : [...prev, taskToDelete]);
+          toast('Task restored');
+        }
+      }
+    });
   };
 
   const handleMoveTask = (taskId: string, newStatus: Status) => {
@@ -630,6 +699,21 @@ const App: React.FC = () => {
       }
       return t;
     }));
+
+    toast(`Sprint "${sprintName}" completed — ${tasksToArchive.length} task${tasksToArchive.length === 1 ? '' : 's'} archived`);
+  };
+
+  // --- Data Export (JSON backup / CSV) ---
+  const handleExportJSON = () => {
+    if (!activeProject) return;
+    exportProjectJSON(activeProject, allProjectTasks);
+    toast(`Exported "${activeProject.name}" as JSON backup`);
+  };
+
+  const handleExportCSV = () => {
+    if (!activeProject) return;
+    exportTasksCSV(activeProject, allProjectTasks);
+    toast(`Exported ${allProjectTasks.length} tasks as CSV`);
   };
 
 
@@ -761,6 +845,8 @@ const App: React.FC = () => {
       ...prev,
       [inviteProject.id]: [...(prev[inviteProject.id] || []), userProfile]
     }));
+
+    toast(`${userProfile.handle} added to ${inviteProject.name}`);
   };
 
   const renderContent = () => {
@@ -772,6 +858,9 @@ const App: React.FC = () => {
           onClearData={handleClearData}
           activeProject={activeProject}
           onUpdateProject={handleUpdateProject}
+          taskCount={allProjectTasks.length}
+          onExportJSON={handleExportJSON}
+          onExportCSV={handleExportCSV}
         />
       );
     }
@@ -819,6 +908,8 @@ const App: React.FC = () => {
         );
       case 'timeline':
         return <Timeline tasks={filteredTasks} />;
+      case 'canvas':
+        return <Whiteboard key={activeProject.id} projectId={activeProject.id} projectName={activeProject.name} tasks={projectTasks} />;
       case 'ai':
         return (
           <AICommandCenter
@@ -854,6 +945,7 @@ const App: React.FC = () => {
         onUpdateProject={handleUpdateProject}
         user={user}
         onOpenFocusMode={() => setIsFocusModeOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         tasks={projectTasks}
         onViewTask={openTaskDetail}
       >
@@ -913,6 +1005,23 @@ const App: React.FC = () => {
         onSubmit={handleInviteByUserHandle}
         projectName={inviteProject?.name || ''}
       />
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        projects={projects}
+        tasks={projectTasks}
+        activeProject={activeProject || null}
+        onNavigate={handleTabChange}
+        onSelectProject={handleSelectProject}
+        onOpenTask={openTaskDetail}
+        onNewTask={() => openNewTaskModal()}
+        onOpenFocusMode={() => setIsFocusModeOpen(true)}
+        onExportJSON={handleExportJSON}
+        onExportCSV={handleExportCSV}
+      />
+
+      <ToastHost />
     </>
   );
 };

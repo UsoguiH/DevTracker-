@@ -103,3 +103,32 @@ export interface AIAction {
   payload?: any;
   summary?: string; // Natural language explanation of what was done
 }
+
+// ── Canvas / Space (infinite whiteboard) ────────────────────────────────────
+
+export type BoardElementType = 'sticky' | 'rect' | 'ellipse' | 'diamond' | 'text' | 'draw';
+
+export interface BoardElement {
+  id: string;
+  type: BoardElementType;
+  x: number;          // world coords, top-left
+  y: number;
+  w: number;
+  h: number;
+  text?: string;
+  color?: string;     // fill (stickies/shapes)
+  points?: [number, number][]; // freehand strokes, absolute world coords
+  fontSize?: number;
+}
+
+export interface BoardConnector {
+  id: string;
+  from: string;       // element id
+  to: string;         // element id
+  label?: string;
+}
+
+export interface BoardData {
+  elements: BoardElement[];
+  connectors: BoardConnector[];
+}
