@@ -126,6 +126,16 @@ const Whiteboard: React.FC<{ projectId: string; projectName: string; tasks: Task
         | { elId: string; kind: 'card'; col: number; idx: number }
         | { elId: string; kind: 'kcol'; col: number }
         | null>(null);
+    const [flyout, setFlyout] = useState<null | 'shapes' | 'draw' | 'more'>(null);
+    const [lastShape, setLastShape] = useState<Tool>('rect');
+    const [lastDraw, setLastDraw] = useState<Tool>('pen');
+
+    // Group buttons remember the last tool picked from their flyout —
+    // also when the tool was switched via keyboard shortcut.
+    useEffect(() => {
+        if (tool === 'rect' || tool === 'ellipse' || tool === 'diamond' || tool === 'connector') setLastShape(tool);
+        if (tool === 'pen' || tool === 'eraser') setLastDraw(tool);
+    }, [tool]);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const dragRef = useRef<Drag | null>(null);
@@ -366,7 +376,7 @@ const Whiteboard: React.FC<{ projectId: string; projectName: string; tasks: Task
             if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelection(); return; }
             if (e.key === 'Escape') {
                 setSelection(new Set()); setSelectedConnector(null); setPendingFrom(null); setEditingId(null);
-                setMarquee(null); setTemplatesOpen(false); setVotingMode(false); setSubEdit(null); setScreenEditId(null); setTool('select');
+                setMarquee(null); setTemplatesOpen(false); setVotingMode(false); setSubEdit(null); setScreenEditId(null); setFlyout(null); setTool('select');
                 return;
             }
             const map: Record<string, Tool> = {
@@ -384,6 +394,7 @@ const Whiteboard: React.FC<{ projectId: string; projectName: string; tasks: Task
 
     // ── Canvas pointer handlers ──────────────────────────────────────────
     const onCanvasPointerDown = (e: React.PointerEvent) => {
+        setFlyout(null);
         if (editingId) { setEditingId(null); return; }
         if (subEdit) { setSubEdit(null); return; }
         containerRef.current?.setPointerCapture(e.pointerId);
@@ -786,20 +797,17 @@ const Whiteboard: React.FC<{ projectId: string; projectName: string; tasks: Task
         : tool === 'connector' ? 'pointer'
         : 'crosshair';
 
-    const TOOLS: { id: Tool; icon: any; label: string; key: string }[] = [
-        { id: 'select', icon: MousePointer2, label: 'Select', key: 'V' },
-        { id: 'hand', icon: Hand, label: 'Pan', key: 'H' },
-        { id: 'sticky', icon: StickyNote, label: 'Sticky note', key: 'N' },
+    // Condensed Miro-style toolbar: top-level singles + grouped flyouts.
+    const SHAPE_TOOLS: { id: Tool; icon: any; label: string; key: string }[] = [
         { id: 'rect', icon: Square, label: 'Rectangle', key: 'R' },
         { id: 'ellipse', icon: Circle, label: 'Ellipse', key: 'O' },
         { id: 'diamond', icon: Diamond, label: 'Decision', key: 'D' },
-        { id: 'text', icon: Type, label: 'Text', key: 'T' },
+        { id: 'connector', icon: ArrowUpRight, label: 'Connector', key: 'L' },
+    ];
+    const DRAW_TOOLS: { id: Tool; icon: any; label: string; key: string }[] = [
         { id: 'pen', icon: Pencil, label: 'Draw', key: 'P' },
         { id: 'eraser', icon: Eraser, label: 'Eraser', key: 'E' },
-        { id: 'connector', icon: ArrowUpRight, label: 'Connector', key: 'L' },
-        { id: 'frame', icon: FrameIcon, label: 'Frame', key: 'F' },
     ];
-
     const SUITE: { type: 'table' | 'kanban' | 'doc' | 'mindmap' | 'screen'; icon: any; label: string }[] = [
         { type: 'table', icon: TableIcon, label: 'Table' },
         { type: 'kanban', icon: Columns, label: 'Kanban' },
@@ -807,6 +815,10 @@ const Whiteboard: React.FC<{ projectId: string; projectName: string; tasks: Task
         { type: 'mindmap', icon: Network, label: 'Mind map node' },
         { type: 'screen', icon: Smartphone, label: 'Prototype screen' },
     ];
+    const shapeIcon = SHAPE_TOOLS.find(t => t.id === lastShape) || SHAPE_TOOLS[0];
+    const drawIcon = DRAW_TOOLS.find(t => t.id === lastDraw) || DRAW_TOOLS[0];
+    const shapeActive = SHAPE_TOOLS.some(t => t.id === tool);
+    const drawActive = DRAW_TOOLS.some(t => t.id === tool);
 
     const renderShapeSvg = (el: BoardElement, stroke: string) => {
         const common = { fill: el.color || '#ffffff', stroke, strokeWidth: 2, vectorEffect: 'non-scaling-stroke' as const };
@@ -1198,31 +1210,105 @@ const Whiteboard: React.FC<{ projectId: string; projectName: string; tasks: Task
                 </div>
             )}
 
-            {/* ── Left creation toolbar ────────────────────────────────── */}
+            {/* ── Left creation toolbar (condensed, Miro-style flyouts) ── */}
             {!presenting && (
                 <div data-board-ui onPointerDown={(e) => e.stopPropagation()}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 bg-surface-card border border-hairline rounded-xl p-1.5 shadow-[0_10px_30px_-10px_rgba(38,37,30,0.3)] z-20 max-h-[calc(100%-32px)] overflow-y-auto">
-                    {TOOLS.map(t => (
-                        <button key={t.id}
-                            onClick={() => { setTool(t.id); setPendingFrom(null); }}
-                            title={`${t.label} (${t.key})`}
-                            className={`p-2.5 rounded-lg transition-colors ${tool === t.id ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
-                            <t.icon size={18} />
+                    className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 bg-surface-card border border-hairline rounded-xl p-1.5 shadow-[0_10px_30px_-10px_rgba(38,37,30,0.3)] z-20">
+                    {/* corner-triangle marker for buttons that open a flyout */}
+                    <style>{`.fly-mark::after { content:''; position:absolute; right:3px; bottom:3px; border-style:solid; border-width:0 0 5px 5px; border-color: transparent transparent currentColor transparent; opacity:.45; }`}</style>
+
+                    <button onClick={() => { setTool('select'); setPendingFrom(null); setFlyout(null); }} title="Select (V)"
+                        className={`p-2.5 rounded-lg transition-colors ${tool === 'select' ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                        <MousePointer2 size={18} />
+                    </button>
+                    <button onClick={() => { setTool('hand'); setFlyout(null); }} title="Pan (H · or hold Space)"
+                        className={`p-2.5 rounded-lg transition-colors ${tool === 'hand' ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                        <Hand size={18} />
+                    </button>
+                    <button onClick={() => { setTool('sticky'); setFlyout(null); }} title="Sticky note (N)"
+                        className={`p-2.5 rounded-lg transition-colors ${tool === 'sticky' ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                        <StickyNote size={18} />
+                    </button>
+                    <button onClick={() => { setTool('text'); setFlyout(null); }} title="Text (T)"
+                        className={`p-2.5 rounded-lg transition-colors ${tool === 'text' ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                        <Type size={18} />
+                    </button>
+
+                    {/* shapes + connector group */}
+                    <div className="relative">
+                        <button onClick={() => { setTool(lastShape); setFlyout(f => f === 'shapes' ? null : 'shapes'); }}
+                            title={`Shapes & connector (${shapeIcon.key})`}
+                            className={`fly-mark relative p-2.5 rounded-lg transition-colors ${shapeActive ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                            <shapeIcon.icon size={18} />
                         </button>
-                    ))}
-                    <div className="h-px bg-hairline my-1 mx-1.5" />
-                    {SUITE.map(s => (
-                        <button key={s.type} onClick={() => insertWidget(s.type)} title={s.label}
-                            className="p-2.5 rounded-lg text-body hover:bg-ink/[0.05] hover:text-ink transition-colors">
-                            <s.icon size={18} />
+                        {flyout === 'shapes' && (
+                            <div className="absolute left-full top-0 ml-2 flex gap-0.5 bg-surface-card border border-hairline rounded-xl p-1.5 shadow-xl animate-pop-in">
+                                {SHAPE_TOOLS.map(t => (
+                                    <button key={t.id} onClick={() => { setTool(t.id); setPendingFrom(null); setFlyout(null); }}
+                                        title={`${t.label} (${t.key})`}
+                                        className={`p-2.5 rounded-lg transition-colors ${tool === t.id ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                                        <t.icon size={18} />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* pen + eraser group */}
+                    <div className="relative">
+                        <button onClick={() => { setTool(lastDraw); setFlyout(f => f === 'draw' ? null : 'draw'); }}
+                            title={`Draw & erase (${drawIcon.key})`}
+                            className={`fly-mark relative p-2.5 rounded-lg transition-colors ${drawActive ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                            <drawIcon.icon size={18} />
                         </button>
-                    ))}
+                        {flyout === 'draw' && (
+                            <div className="absolute left-full top-0 ml-2 flex gap-0.5 bg-surface-card border border-hairline rounded-xl p-1.5 shadow-xl animate-pop-in">
+                                {DRAW_TOOLS.map(t => (
+                                    <button key={t.id} onClick={() => { setTool(t.id); setFlyout(null); }}
+                                        title={`${t.label} (${t.key})`}
+                                        className={`p-2.5 rounded-lg transition-colors ${tool === t.id ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                                        <t.icon size={18} />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <button onClick={() => { setTool('frame'); setFlyout(null); }} title="Frame (F)"
+                        className={`p-2.5 rounded-lg transition-colors ${tool === 'frame' ? 'bg-[#D97757] text-white' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                        <FrameIcon size={18} />
+                    </button>
+                    <button onClick={() => { setTemplatesOpen(true); setFlyout(null); }} title="Templates"
+                        className="p-2.5 rounded-lg text-body hover:bg-ink/[0.05] hover:text-ink transition-colors">
+                        <LayoutTemplate size={18} />
+                    </button>
+
+                    {/* widgets + actions group */}
+                    <div className="relative">
+                        <button onClick={() => setFlyout(f => f === 'more' ? null : 'more')} title="More tools"
+                            className={`fly-mark relative p-2.5 rounded-lg transition-colors ${flyout === 'more' ? 'bg-ink/[0.07] text-ink' : 'text-body hover:bg-ink/[0.05] hover:text-ink'}`}>
+                            <Plus size={18} />
+                        </button>
+                        {flyout === 'more' && (
+                            <div className="absolute left-full bottom-0 ml-2 w-48 bg-surface-card border border-hairline rounded-xl p-1.5 shadow-xl animate-pop-in">
+                                {SUITE.map(s => (
+                                    <button key={s.type} onClick={() => { insertWidget(s.type); setFlyout(null); }}
+                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-body hover:bg-ink/[0.05] hover:text-ink transition-colors">
+                                        <s.icon size={15} /> {s.label}
+                                    </button>
+                                ))}
+                                <div className="h-px bg-hairline my-1 mx-1" />
+                                <button onClick={() => { clearBoard(); setFlyout(null); }}
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-body hover:bg-error/10 hover:text-error transition-colors">
+                                    <Trash2 size={15} /> Clear board
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="h-px bg-hairline my-1 mx-1.5" />
-                    <button onClick={() => setTemplatesOpen(true)} title="Templates"
-                        className="p-2.5 rounded-lg text-body hover:bg-ink/[0.05] hover:text-ink transition-colors"><LayoutTemplate size={18} /></button>
                     <button onClick={undo} title="Undo (Ctrl+Z)" className="p-2.5 rounded-lg text-body hover:bg-ink/[0.05] hover:text-ink transition-colors"><Undo2 size={18} /></button>
                     <button onClick={redo} title="Redo (Ctrl+Shift+Z)" className="p-2.5 rounded-lg text-body hover:bg-ink/[0.05] hover:text-ink transition-colors"><Redo2 size={18} /></button>
-                    <button onClick={clearBoard} title="Clear board" className="p-2.5 rounded-lg text-body hover:bg-error/10 hover:text-error transition-colors"><Trash2 size={18} /></button>
                 </div>
             )}
 
