@@ -106,7 +106,19 @@ export interface AIAction {
 
 // ── Canvas / Space (infinite whiteboard) ────────────────────────────────────
 
-export type BoardElementType = 'sticky' | 'rect' | 'ellipse' | 'diamond' | 'text' | 'draw';
+export type BoardElementType =
+  | 'sticky' | 'rect' | 'ellipse' | 'diamond' | 'text' | 'draw'
+  | 'frame' | 'table' | 'kanban' | 'doc' | 'mindmap' | 'screen';
+
+// A wireframe block inside a prototype screen.
+export interface ScreenBlock {
+  id: string;
+  kind: 'header' | 'text' | 'button' | 'input' | 'image' | 'list';
+  label: string;
+  targetScreenId?: string; // hotspot: clicking navigates to this screen in play mode
+}
+
+export interface KanbanColumn { title: string; cards: string[]; }
 
 export interface BoardElement {
   id: string;
@@ -116,9 +128,16 @@ export interface BoardElement {
   w: number;
   h: number;
   text?: string;
-  color?: string;     // fill (stickies/shapes)
+  color?: string;     // fill (stickies/shapes) / accent (frames)
   points?: [number, number][]; // freehand strokes, absolute world coords
   fontSize?: number;
+  votes?: number;                     // voting-mode dots
+  reactions?: Record<string, number>; // emoji -> count
+  locked?: boolean;
+  hidden?: boolean;                   // frames: hidden via the frames panel
+  cells?: string[][];                 // table: rows of cells
+  columns?: KanbanColumn[];           // kanban columns
+  blocks?: ScreenBlock[];             // prototype screen wireframe blocks
 }
 
 export interface BoardConnector {

@@ -126,7 +126,20 @@ CANVAS MODEL:
   - "ellipse" : ellipse node, ~200x110. Good for start/end nodes.
   - "diamond" : diamond node, ~180x140. Good for decisions ("Yes/No" branches).
   - "text"    : free-floating label, ~260x44, transparent. Good for titles/section headers.
+  - "frame"   : a titled container region, ~640x440+. "text" is the frame title. Place related
+                elements INSIDE the frame's bounds. Use for sections, retro columns, slide-like areas.
+  - "mindmap" : rounded mind-map node, ~170x56. Connect with connectors for branches.
+  - "doc"     : a document card, ~320x400. "text" holds multi-line prose (first line = title).
+  - "table"   : data grid, ~460x240. Extra field "cells": string[][] (first row = header row).
+  - "kanban"  : kanban widget, ~720x420. Extra field "columns": [{ "title": string, "cards": string[] }].
+  - "screen"  : mobile prototype screen, ~250x460. Extra field "blocks": list of wireframe blocks
+                { "kind": "header"|"text"|"button"|"input"|"image"|"list", "label": string, "targetScreenId"?: "<ref of another screen>" }.
+                A "button" or "list" with targetScreenId becomes a clickable HOTSPOT that navigates
+                to that screen in play mode. Place screens side by side ~80px apart, and add
+                connectors between linked screens so the flow reads on the canvas.
 - Connectors are arrows between two elements (by id or ref): { "from", "to", "label"? }.
+- PROTOTYPING: when asked for a prototype/wireframe/app flow, prefer "screen" elements with
+  4-6 blocks each and hotspot links forming a complete clickable journey.
 - Sticky colors (pick varied ones): "#FFF6A5" yellow, "#FFD6A5" orange, "#FFB3BA" pink, "#D7BDE2" purple,
   "#AED6F1" blue, "#A9DFBF" green. Shapes default to "#ffffff".
 
@@ -147,7 +160,7 @@ OUTPUT CONTRACT — respond with ONLY one raw JSON object, no code fences, no pr
 {
   "reply": string,            // your conversational answer — always present, friendly, concise
   "add": {                    // optional
-    "elements": [ { "ref": "n1", "type": "sticky"|"rect"|"ellipse"|"diamond"|"text", "x": number, "y": number, "w": number, "h": number, "text": string, "color": string } ],
+    "elements": [ { "ref": "n1", "type": "sticky"|"rect"|"ellipse"|"diamond"|"text"|"frame"|"mindmap"|"doc"|"table"|"kanban"|"screen", "x": number, "y": number, "w": number, "h": number, "text": string, "color": string, "cells"?: string[][], "columns"?: [...], "blocks"?: [...] } ],
     "connectors": [ { "from": "n1"|"<existing id>", "to": "n2"|"<existing id>", "label": string? } ]
   },
   "update": [ { "id": "<existing id>", ...changed fields only } ],   // optional
