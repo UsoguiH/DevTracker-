@@ -12,7 +12,8 @@ import {
     MessageSquare,
     Share2,
     Activity,
-    Flame
+    Flame,
+    Plus
 } from 'lucide-react';
 import { Task, Project } from '../types';
 import { useCountUp } from '../hooks/useCountUp';
@@ -23,6 +24,180 @@ interface DashboardProps {
     project?: Project;
     onAddMember: (projectId: string, projectName: string) => void;
 }
+
+/* ── Cutout-notch card system (cards.txt trick, editorial palette) ── */
+
+// Reusable animated Bell Button Component with Color Toggle
+const BellButton: React.FC<{
+    defaultBtn: string;
+    activeBtn: string;
+    defaultIcon: string;
+    activeIcon: string;
+}> = ({ defaultBtn, activeBtn, defaultIcon, activeIcon }) => {
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [isActive, setIsActive] = useState(false); // Tracks if the bell is toggled on
+
+    const handleClick = () => {
+        if (isAnimating) return;
+        setIsAnimating(true);
+        setIsActive((prev) => !prev); // Toggle the color state
+        setTimeout(() => setIsAnimating(false), 600);
+    };
+
+    const currentBtnClass = isActive ? activeBtn : defaultBtn;
+    const currentIconClass = isActive ? activeIcon : defaultIcon;
+
+    return (
+        <button
+            onClick={handleClick}
+            className={`w-[46px] h-[46px] ${currentBtnClass} rounded-full flex items-center justify-center transition-colors duration-300 cursor-pointer group`}
+        >
+            <svg
+                className={`w-[20px] h-[20px] ${currentIconClass} transition-colors duration-300 ${isAnimating ? 'dt-animate-ring' : ''}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+        </button>
+    );
+};
+
+// Reusable animated Arrow Button Component (Replicating GSAP Elastic ease)
+const ArrowButton: React.FC<{
+    btnClass: string;
+    iconClass: string;
+    onClick?: () => void;
+}> = ({ btnClass, iconClass, onClick }) => {
+    const [isAnimating, setIsAnimating] = useState(false);
+
+    const handleClick = () => {
+        if (isAnimating) return;
+        setIsAnimating(true);
+        setTimeout(() => setIsAnimating(false), 800);
+        onClick?.();
+    };
+
+    return (
+        <button onClick={handleClick} className={`w-[46px] h-[46px] ${btnClass} rounded-full flex items-center justify-center transition-all cursor-pointer ${isAnimating ? 'dt-animate-arrow-btn' : ''}`}>
+            <svg className={`w-[22px] h-[22px] ${iconClass} ${isAnimating ? 'dt-animate-arrow-icon' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 17L17 7"></path>
+                <path d="M7 7h10v10"></path>
+            </svg>
+        </button>
+    );
+};
+
+// Plain circular notch action (relocated card actions, e.g. "more" / "add member")
+const NotchAction: React.FC<{
+    onClick?: (e: React.MouseEvent) => void;
+    title?: string;
+    children: React.ReactNode;
+}> = ({ onClick, title, children }) => (
+    <button
+        title={title}
+        onClick={onClick}
+        className="w-[46px] h-[46px] bg-surface-card border border-hairline-strong hover:bg-surface-strong rounded-full flex items-center justify-center text-body hover:text-ink transition-colors duration-300 cursor-pointer"
+    >
+        {children}
+    </button>
+);
+
+// Card shell with the top-right cutout notch. The notch paints the page
+// canvas over the card; the two 32px squares restore the card color with a
+// rounded corner, producing the smooth concave transition.
+const NotchCard: React.FC<{
+    className?: string;
+    delay?: string;
+    notchWidth?: number;
+    notch: React.ReactNode;
+    children: React.ReactNode;
+}> = ({ className = '', delay = '0ms', notchWidth = 148, notch, children }) => (
+    <div
+        className={`relative bg-surface-card rounded-[40px] dt-anim-card ${className}`}
+        style={{ animationDelay: delay }}
+    >
+        {/* CUTOUT AREA */}
+        <div
+            className="absolute top-0 right-0 h-[88px] bg-canvas rounded-bl-[36px] z-20 flex items-center justify-end pr-5 pb-3"
+            style={{ width: notchWidth }}
+        >
+            <div className="absolute top-0 -left-[32px] w-[32px] h-[32px] bg-canvas">
+                <div className="w-full h-full bg-surface-card rounded-tr-[32px]"></div>
+            </div>
+            <div className="absolute -bottom-[32px] right-0 w-[32px] h-[32px] bg-canvas">
+                <div className="w-full h-full bg-surface-card rounded-tr-[32px]"></div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">{notch}</div>
+        </div>
+        {children}
+    </div>
+);
+
+// Pop-in wrapper so entrance animation never conflicts with click animations
+const NotchPop: React.FC<{ delay?: string; children: React.ReactNode }> = ({ delay = '0.4s', children }) => (
+    <span className="dt-anim-btn inline-flex" style={{ animationDelay: delay }}>
+        {children}
+    </span>
+);
+
+const notchStyles = `
+@keyframes dtSlideUpCard {
+  from { transform: translateY(60px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes dtPopInBtn {
+  from { transform: scale(0) rotate(-45deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+/* Bell Ring CSS Animation */
+@keyframes dtRingBell {
+  0% { transform: rotate(0); }
+  16% { transform: rotate(25deg); }
+  33% { transform: rotate(-20deg); }
+  50% { transform: rotate(15deg); }
+  66% { transform: rotate(-10deg); }
+  83% { transform: rotate(5deg); }
+  100% { transform: rotate(0); }
+}
+.dt-animate-ring {
+  animation: dtRingBell 0.6s ease-in-out;
+  transform-origin: 50% 10%;
+}
+/* GSAP-Style Arrow Click Animations */
+@keyframes dtArrowBtnSqueeze {
+  0% { transform: scale(1); }
+  25% { transform: scale(0.85); }
+  100% { transform: scale(1); animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } /* Elastic Pop */
+}
+.dt-animate-arrow-btn {
+  animation: dtArrowBtnSqueeze 0.8s forwards;
+}
+@keyframes dtArrowIconShoot {
+  0% { transform: translate(0, 0); opacity: 1; }
+  20% { transform: translate(25px, -25px); opacity: 0; animation-timing-function: ease-in; }
+  21% { transform: translate(-25px, 25px); opacity: 0; }
+  100% { transform: translate(0, 0); opacity: 1; animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); } /* Back Out Easing */
+}
+.dt-animate-arrow-icon {
+  animation: dtArrowIconShoot 0.8s forwards;
+}
+.dt-anim-card {
+  animation: dtSlideUpCard 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+.dt-anim-btn {
+  animation: dtPopInBtn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+}
+`;
 
 const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) => {
     const stats = useMemo(() => {
@@ -122,10 +297,10 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
         }
     };
 
-    const cardCls = 'bg-surface-card border border-hairline rounded-xl p-6';
-
     return (
         <div className="flex flex-col h-full pb-10">
+            <style>{notchStyles}</style>
+
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-end mb-6 gap-4 animate-slide-up">
                 <div>
@@ -146,7 +321,29 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 {/* Card 1: Project Progress Gauge */}
-                <div className={`col-span-1 lg:col-span-4 ${cardCls} flex flex-col justify-between min-h-[280px] relative overflow-hidden animate-slide-up delay-100`}>
+                <NotchCard
+                    className="col-span-1 lg:col-span-4 p-6 flex flex-col justify-between min-h-[280px] overflow-hidden"
+                    delay="100ms"
+                    notchWidth={148}
+                    notch={
+                        <>
+                            <NotchPop delay="0.4s">
+                                <BellButton
+                                    defaultBtn="bg-surface-card border border-hairline-strong hover:bg-surface-strong"
+                                    activeBtn="bg-ink hover:bg-[#3a3930]"
+                                    defaultIcon="text-ink"
+                                    activeIcon="text-canvas"
+                                />
+                            </NotchPop>
+                            <NotchPop delay="0.5s">
+                                <ArrowButton
+                                    btnClass="bg-primary hover:bg-primary-active shadow-[0_0_15px_rgba(245,78,0,0.2)]"
+                                    iconClass="text-on-primary"
+                                />
+                            </NotchPop>
+                        </>
+                    }
+                >
                     <div className="flex justify-between items-start mb-2 relative z-10">
                         <h2 className="text-lg font-semibold text-ink tracking-tight">Project Progress</h2>
                     </div>
@@ -227,13 +424,23 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
                         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-[#9fc9a2]"></div><span>In Progress</span></div>
                         <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full border border-hairline-strong bg-surface-strong"></div><span>Pending</span></div>
                     </div>
-                </div>
+                </NotchCard>
 
                 {/* Card 2: Project Insights */}
-                <div className={`col-span-1 lg:col-span-3 ${cardCls} flex flex-col min-h-[280px] animate-slide-up delay-200`}>
+                <NotchCard
+                    className="col-span-1 lg:col-span-3 p-6 flex flex-col min-h-[280px]"
+                    delay="200ms"
+                    notchWidth={104}
+                    notch={
+                        <NotchPop delay="0.5s">
+                            <NotchAction title="More">
+                                <MoreHorizontal size={20} />
+                            </NotchAction>
+                        </NotchPop>
+                    }
+                >
                     <div className="flex justify-between items-start mb-6">
                         <h2 className="text-xs font-semibold text-muted tracking-wider uppercase">Project Insights</h2>
-                        <button className="text-muted hover:text-ink transition-colors"><MoreHorizontal size={20} /></button>
                     </div>
 
                     <div className="flex-1 flex flex-col justify-center gap-6">
@@ -262,13 +469,23 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
                             <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${[0, 2, 5, 7, 8, 10, 13, 15].includes(i) ? 'bg-primary' : 'bg-surface-strong'}`} />
                         ))}
                     </div>
-                </div>
+                </NotchCard>
 
                 {/* Card 3: Upcoming Deadlines */}
-                <div className={`col-span-1 lg:col-span-5 lg:row-span-2 ${cardCls} flex flex-col overflow-hidden animate-slide-up delay-300`}>
+                <NotchCard
+                    className="col-span-1 lg:col-span-5 lg:row-span-2 p-6 flex flex-col overflow-hidden"
+                    delay="300ms"
+                    notchWidth={104}
+                    notch={
+                        <NotchPop delay="0.6s">
+                            <NotchAction title="More">
+                                <MoreHorizontal size={20} />
+                            </NotchAction>
+                        </NotchPop>
+                    }
+                >
                     <div className="flex justify-between items-start mb-8">
                         <h2 className="text-xs font-semibold text-muted tracking-wider uppercase">Upcoming Deadlines</h2>
-                        <button className="text-muted hover:text-ink transition-colors"><MoreHorizontal size={20} /></button>
                     </div>
 
                     <div className="flex-1 relative">
@@ -317,13 +534,23 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
                         </div>
                         <button className="text-primary font-medium hover:underline">View Calendar</button>
                     </div>
-                </div>
+                </NotchCard>
 
                 {/* Card 4: Status Distribution */}
-                <div className={`col-span-1 lg:col-span-4 ${cardCls} flex flex-col justify-between animate-slide-up delay-400`}>
+                <NotchCard
+                    className="col-span-1 lg:col-span-4 p-6 flex flex-col justify-between"
+                    delay="400ms"
+                    notchWidth={104}
+                    notch={
+                        <NotchPop delay="0.7s">
+                            <NotchAction title="More">
+                                <MoreHorizontal size={20} />
+                            </NotchAction>
+                        </NotchPop>
+                    }
+                >
                     <div className="flex justify-between items-start mb-4">
                         <h2 className="text-xs font-semibold text-muted tracking-wider uppercase">Status Distribution</h2>
-                        <button className="text-muted hover:text-ink transition-colors"><MoreHorizontal size={20} /></button>
                     </div>
 
                     <div className="flex-1 flex flex-col justify-end space-y-4">
@@ -342,18 +569,26 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
                             </div>
                         ))}
                     </div>
-                </div>
+                </NotchCard>
 
                 {/* Card 5: Team Collaboration */}
-                <div className={`col-span-1 lg:col-span-3 ${cardCls} flex flex-col animate-slide-up delay-500 relative overflow-hidden`}>
+                <NotchCard
+                    className="col-span-1 lg:col-span-3 p-6 flex flex-col overflow-hidden"
+                    delay="500ms"
+                    notchWidth={104}
+                    notch={
+                        <NotchPop delay="0.8s">
+                            <NotchAction
+                                title="Add Member"
+                                onClick={(e) => { e.stopPropagation(); if (project) onAddMember(project.id, project.name); }}
+                            >
+                                <Plus size={20} />
+                            </NotchAction>
+                        </NotchPop>
+                    }
+                >
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-semibold text-ink tracking-tight">Team</h2>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); if (project) onAddMember(project.id, project.name); }}
-                            className="px-3 py-1.5 rounded-md border border-hairline-strong text-xs font-medium text-body flex items-center gap-1 transition-colors hover:bg-canvas-soft cursor-pointer relative"
-                        >
-                            <span>+</span> Add Member
-                        </button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
@@ -408,16 +643,28 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
                             })()}
                         </div>
                     </div>
-                </div>
+                </NotchCard>
 
                 {/* Heatmap */}
-                <div className={`col-span-1 lg:col-span-12 ${cardCls} animate-slide-up delay-75`}>
+                <NotchCard
+                    className="col-span-1 lg:col-span-12 p-6"
+                    delay="75ms"
+                    notchWidth={104}
+                    notch={
+                        <NotchPop delay="0.6s">
+                            <ArrowButton
+                                btnClass="bg-primary hover:bg-primary-active shadow-[0_0_15px_rgba(245,78,0,0.2)]"
+                                iconClass="text-on-primary"
+                            />
+                        </NotchPop>
+                    }
+                >
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-2">
                             <Flame size={18} className="text-primary" />
                             <h2 className="text-xs font-semibold text-muted tracking-wider uppercase">Contribution Graph</h2>
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] text-muted">
+                        <div className="flex items-center gap-2 text-[10px] text-muted mr-[112px]">
                             <span>Less</span>
                             <div className="w-3 h-3 rounded-sm bg-surface-strong"></div>
                             <div className="w-3 h-3 rounded-sm bg-primary/25"></div>
@@ -446,7 +693,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tasks, project, onAddMember }) =>
                             ))}
                         </div>
                     </div>
-                </div>
+                </NotchCard>
 
             </div>
         </div>
