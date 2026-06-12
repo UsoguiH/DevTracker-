@@ -231,10 +231,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onMoveTask, onAddTask,
                 </div>
             )}
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 animate-slide-up">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4 animate-slide-up">
                 <div>
-                    <h1 className="display text-[28px] text-ink mb-1">Sprint board</h1>
-                    <p className="text-sm text-body">Manage your current active tasks</p>
+                    <h1 className="display text-[28px] text-ink">Sprint board</h1>
                 </div>
                 <div className="flex items-center gap-3">
                     <button

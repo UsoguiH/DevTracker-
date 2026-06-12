@@ -912,6 +912,7 @@ const App: React.FC = () => {
             onCompleteSprint={handleCompleteSprint}
             onViewHistory={() => setIsHistoryModalOpen(true)}
             onTabChange={setJiraTab}
+            requestedTab={jiraTab}
           />
         );
       case 'canvas':
@@ -945,6 +946,12 @@ const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={handleTabChange}
         showNewTask={activeTab === 'jira' && jiraTab === 'board'}
+        projects={projects}
+        onSelectProject={handleSelectProject}
+        onInvite={activeProject ? () => handleOpenInvite(activeProject.id, activeProject.name) : undefined}
+        workspaceTab={jiraTab}
+        onOpenWorkspaceTab={(tab) => { setJiraTab(tab); setActiveTab('jira'); }}
+        onViewArchive={() => setIsHistoryModalOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onAddTask={() => openNewTaskModal()}

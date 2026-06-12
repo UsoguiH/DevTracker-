@@ -143,7 +143,7 @@ const JiraTimeline: React.FC<JiraTimelineProps> = ({
     const chartW = totalDays * dayW;
 
     return (
-        <div className="bg-surface-card border border-hairline rounded-xl overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 248px)' }}>
+        <div className="bg-surface-card border border-hairline rounded-xl overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 216px)' }}>
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-hairline shrink-0">
                 <span className="text-[12px] text-muted">

@@ -24,6 +24,7 @@ interface JiraProjectProps {
     onCompleteSprint: (sprintName: string) => void;
     onViewHistory: () => void;
     onTabChange?: (tab: string) => void;
+    requestedTab?: string;
 }
 
 const CORE_TABS = [
@@ -54,12 +55,19 @@ const VIEWS = [
 
 const JiraProject: React.FC<JiraProjectProps> = ({
     project, tasks, user, onMoveTask, onQuickCreate, onOpenTask, onUpdateProject,
-    onUpdateTask, onAddTask, onCompleteSprint, onViewHistory, onTabChange
+    onUpdateTask, onAddTask, onCompleteSprint, onViewHistory, onTabChange, requestedTab
 }) => {
     const storageKey = `devtrack-jira-tabs-${project.id}`;
-    const [activeTab, setActiveTab] = useState('board');
+    const [activeTab, setActiveTab] = useState(requestedTab || 'board');
     const [extraTabs, setExtraTabs] = useState<string[]>(() => {
-        try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
+        try {
+            const stored: string[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            // A deep-linked extra view is pinned from the very first render — no flash.
+            if (requestedTab && VIEWS.some(v => v.id === requestedTab) && !stored.includes(requestedTab)) {
+                stored.push(requestedTab);
+            }
+            return stored;
+        } catch { return []; }
     });
     const [viewsOpen, setViewsOpen] = useState(false);
     const [previewView, setPreviewView] = useState(VIEWS[0]);
@@ -67,6 +75,15 @@ const JiraProject: React.FC<JiraProjectProps> = ({
 
     useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(extraTabs)); }, [extraTabs, storageKey]);
     useEffect(() => { onTabChange?.(activeTab); }, [activeTab, onTabChange]);
+    // Sidebar deep-links land here; extra views (Backlog, Calendar, …) get
+    // pinned to the tab bar so the active view is visible.
+    useEffect(() => {
+        if (!requestedTab) return;
+        if (VIEWS.some(v => v.id === requestedTab)) {
+            setExtraTabs(prev => (prev.includes(requestedTab) ? prev : [...prev, requestedTab]));
+        }
+        setActiveTab(requestedTab);
+    }, [requestedTab]);
 
     const workflow = useMemo(() => workflowOf(project), [project]);
     const keyMap = useMemo(() => keyMapOf(tasks, project.key || 'KAN'), [tasks, project.key]);
@@ -92,7 +109,7 @@ const JiraProject: React.FC<JiraProjectProps> = ({
             case 'board':
                 // The original sprint board, untouched — same design, same behavior.
                 return (
-                    <div className="h-[calc(100vh-264px)]">
+                    <div className="h-[calc(100vh-230px)]">
                         <KanbanBoard
                             tasks={tasks}
                             onMoveTask={onMoveTask}
@@ -147,9 +164,9 @@ const JiraProject: React.FC<JiraProjectProps> = ({
     };
 
     return (
-        <div className="min-h-full bg-canvas px-8 pt-4 pb-10">
+        <div className="min-h-full bg-canvas px-8 pt-3 pb-10">
             {/* Title */}
-            <div className="flex items-center justify-between mb-4 animate-slide-up">
+            <div className="flex items-center justify-between mb-3 animate-slide-up">
                 <div className="flex items-center gap-3">
                     <span className="w-7 h-7 rounded-md flex items-center justify-center bg-primary text-on-primary text-[11px] font-bold">
                         {(project.key || 'P').slice(0, 2)}
