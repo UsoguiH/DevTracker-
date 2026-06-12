@@ -5,8 +5,7 @@ import Login from './src/pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import AICommandCenter from './pages/AICommandCenter';
-import KanbanBoard from './pages/KanbanBoard';
-import Timeline from './pages/Timeline';
+import JiraProject from './pages/JiraProject';
 import Whiteboard from './pages/Whiteboard';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
@@ -452,7 +451,7 @@ const App: React.FC = () => {
     await supabase.auth.signOut();
   };
 
-  const handleCreateTask = async (taskData: Partial<Task>) => {
+  const handleCreateTask = async (taskData: Partial<Task>, options?: { openDetail?: boolean }) => {
     if (!activeProjectId) return;
 
     // Preparation
@@ -496,7 +495,7 @@ const App: React.FC = () => {
     } as Task;
 
     setTasks(prev => [...prev, optimisticTask]);
-    if (!taskData.tags?.some(t => t.name === 'AI Generated')) {
+    if (options?.openDetail !== false && !taskData.tags?.some(t => t.name === 'AI Generated')) {
       setSelectedTask(optimisticTask); // Open immediately
     }
 
@@ -786,9 +785,13 @@ const App: React.FC = () => {
   };
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
+    // Legacy tab ids — kanban/timeline now live inside the Workspace.
+    setActiveTab(tab === 'kanban' || tab === 'timeline' ? 'jira' : tab);
     setSearchQuery('');
   };
+
+  // Which inner tab the Workspace is showing (controls the header New Task button)
+  const [jiraTab, setJiraTab] = useState('board');
 
   /* New Modal State */
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -894,20 +897,23 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard tasks={projectTasks} project={activeProject} onAddMember={handleOpenInvite} />;
-      case 'kanban':
+      case 'jira':
         return (
-          <KanbanBoard
-            tasks={filteredTasks}
+          <JiraProject
+            project={activeProject}
+            tasks={projectTasks}
+            user={user}
             onMoveTask={handleMoveTask}
+            onQuickCreate={(data) => handleCreateTask(data, { openDetail: false })}
+            onOpenTask={openTaskDetail}
+            onUpdateProject={(p) => handleUpdateProject(p.id, { workflow: p.workflow })}
+            onUpdateTask={handleUpdateTask}
             onAddTask={openNewTaskModal}
-            onEditTask={openTaskDetail}
             onCompleteSprint={handleCompleteSprint}
             onViewHistory={() => setIsHistoryModalOpen(true)}
-            workflow={activeProject?.workflow ?? undefined}
+            onTabChange={setJiraTab}
           />
         );
-      case 'timeline':
-        return <Timeline tasks={filteredTasks} />;
       case 'canvas':
         return <Whiteboard key={activeProject.id} projectId={activeProject.id} projectName={activeProject.name} tasks={projectTasks} />;
       case 'ai':
@@ -938,6 +944,7 @@ const App: React.FC = () => {
       <Layout
         activeTab={activeTab}
         setActiveTab={handleTabChange}
+        showNewTask={activeTab === 'jira' && jiraTab === 'board'}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onAddTask={() => openNewTaskModal()}

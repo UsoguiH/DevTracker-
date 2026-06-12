@@ -4,7 +4,6 @@ import {
     Search,
     LayoutDashboard,
     KanbanSquare,
-    CalendarDays,
     BrainCircuit,
     FolderOpen,
     Settings,
@@ -103,8 +102,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         const pages: Array<{ tab: string; label: string; icon: React.ReactNode; needsProject?: boolean }> = [
             { tab: 'projects', label: 'Projects', icon: <FolderOpen size={16} /> },
             { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} />, needsProject: true },
-            { tab: 'kanban', label: 'Kanban Board', icon: <KanbanSquare size={16} />, needsProject: true },
-            { tab: 'timeline', label: 'Timeline', icon: <CalendarDays size={16} />, needsProject: true },
+            { tab: 'jira', label: 'Workspace', icon: <KanbanSquare size={16} />, needsProject: true },
             { tab: 'canvas', label: 'Space (Canvas)', icon: <Presentation size={16} />, needsProject: true },
             { tab: 'ai', label: 'AI Manager', icon: <BrainCircuit size={16} />, needsProject: true },
             { tab: 'settings', label: 'Settings', icon: <Settings size={16} /> },

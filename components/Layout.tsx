@@ -35,6 +35,7 @@ interface LayoutProps {
   user: User;
   tasks: Task[];
   onViewTask: (task: Task) => void;
+  showNewTask?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -50,7 +51,8 @@ const Layout: React.FC<LayoutProps> = ({
   onUpdateProject,
   user,
   tasks,
-  onViewTask
+  onViewTask,
+  showNewTask = false
 }) => {
   const [isHUDOpen, setIsHUDOpen] = useState(false);
   const [isAlertsPanelOpen, setIsAlertsPanelOpen] = useState(false);
@@ -156,13 +158,12 @@ const Layout: React.FC<LayoutProps> = ({
           <Caption>Menu</Caption>
           <NavRow id="projects" icon={FolderOpen} label="Projects" index={0} />
           <NavRow id="dashboard" icon={LayoutDashboard} label="Dashboard" disabled={!activeProject} index={1} />
-          <NavRow id="kanban" icon={KanbanSquare} label="Kanban" disabled={!activeProject} index={2} />
-          <NavRow id="timeline" icon={CalendarDays} label="Timeline" disabled={!activeProject} index={3} />
-          <NavRow id="canvas" icon={Presentation} label="Space" disabled={!activeProject} index={4} />
-          <NavRow id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} index={5} />
+          <NavRow id="jira" icon={KanbanSquare} label="Workspace" disabled={!activeProject} index={2} />
+          <NavRow id="canvas" icon={Presentation} label="Space" disabled={!activeProject} index={3} />
+          <NavRow id="ai" icon={BrainCircuit} label="AI Manager" disabled={!activeProject} index={4} />
 
           <Caption>Focus</Caption>
-          <NavRow icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} index={6} />
+          <NavRow icon={Zap} label="Focus Mode" disabled={!activeProject} onClick={onOpenFocusMode} index={5} />
         </div>
 
         {/* Bottom: settings + user */}
@@ -212,20 +213,7 @@ const Layout: React.FC<LayoutProps> = ({
               <kbd className="text-[10px] font-mono bg-surface-strong border border-hairline rounded px-1.5 py-0.5 text-muted-soft">Ctrl K</kbd>
             </button>
 
-            {activeTab === 'kanban' && (
-              <div className="relative w-full max-w-xs group animate-fade-in">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors duration-300" size={18} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search tasks..."
-                  className="w-full bg-surface-card border border-hairline-strong rounded-md py-2 pl-11 pr-4 text-sm text-ink placeholder-muted-soft focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-300"
-                />
-              </div>
-            )}
-
-            {activeTab === 'kanban' && (
+            {showNewTask && (
               <button
                 onClick={onAddTask}
                 disabled={!activeProject}
@@ -275,7 +263,7 @@ const Layout: React.FC<LayoutProps> = ({
         />
 
         {/* Page Content Scrollable Area */}
-        <div className={`flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative ${activeTab === 'ai' ? '' : 'p-8'}`}>
+        <div className={`flex-1 overflow-y-auto overflow-x-hidden scroll-smooth relative ${activeTab === 'ai' || activeTab === 'jira' ? '' : 'p-8'}`}>
           {/* Background dot grid — warm ink, very subtle */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]"
             style={{ backgroundImage: 'radial-gradient(#26251e 1px, transparent 1px)', backgroundSize: '24px 24px' }}>

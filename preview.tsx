@@ -4,12 +4,12 @@ import AICommandCenter, { AIChatView, ChatMsg } from './pages/AICommandCenter';
 import Projects from './pages/Projects';
 import KanbanBoard from './pages/KanbanBoard';
 import Dashboard from './pages/Dashboard';
-import Timeline from './pages/Timeline';
 import TaskDetailDrawer from './components/TaskDetailDrawer';
 import Layout from './components/Layout';
 import { MorphPanel } from './components/ui/ai-input';
 import BoardAIPanel, { BoardMsg } from './components/BoardAIPanel';
 import Whiteboard from './pages/Whiteboard';
+import JiraProject from './pages/JiraProject';
 
 /**
  * Dev-only preview harness (no Supabase login needed) so reskinned screens can
@@ -71,10 +71,25 @@ if (view === 'projects') {
       <Dashboard tasks={mockTasks.filter(t => t.projectId === 'p1')} project={{ id: 'p1', key: 'CA', name: 'Cafe App', description: 'Mobile ordering + loyalty for a coffee chain.', createdAt: '2026-03-01' } as any} onAddMember={() => {}} />
     </div>
   );
-} else if (view === 'timeline') {
+} else if (view === 'jira') {
+  const jiraTasks = mockTasks
+    .filter(t => t.projectId === 'p1')
+    .map(t => ({ ...t, dueDate: t.endDate, tags: t.tags.map((tag: any) => ({ ...tag, color: tag.color || 'bg-emerald-800' })) }));
   content = (
-    <div className="h-screen bg-canvas p-8">
-      <Timeline tasks={mockTasks.filter(t => t.projectId === 'p1')} />
+    <div className="min-h-screen bg-canvas">
+      <JiraProject
+        project={{ id: 'p1', key: 'KAN', name: 'Cafe App', description: '', createdAt: '2026-03-01' } as any}
+        tasks={jiraTasks}
+        user={user as any}
+        onMoveTask={() => {}}
+        onQuickCreate={() => {}}
+        onOpenTask={() => {}}
+        onUpdateProject={() => {}}
+        onUpdateTask={() => {}}
+        onAddTask={() => {}}
+        onCompleteSprint={() => {}}
+        onViewHistory={() => {}}
+      />
     </div>
   );
 } else if (view === 'sidebar' || view === 'layout') {
